@@ -1,6 +1,8 @@
 # Demonstrate cwms_read_CDA.r usage
 rm(list = ls())
-install.package('cwmsr')
+library(devtools)
+install_github("nbuccola/cwmsr")
+install.packages('cwmsr')
 library(cwmsr)
 LocalWd <- 'C:/Users/g2echnb9/OneDrive - US Army Corps of Engineers/Desktop'
 CDApath <- 'https://wm.nww.ds.usace.army.mil:8243/nwdp-data/'
