@@ -12,6 +12,7 @@
 #' @keywords CWMS Corps USACE data retrieval
 #' @examples
 #' @export
+#' @importFrom foreach foreach
 get_cwms<-function(paths, start_date, end_date, timezone = 'PST8PDT',
                    timeseries=T,
                    CDApath = 'https://wm.nww.ds.usace.army.mil:8243/nwdp-data/'){
