@@ -14,8 +14,9 @@ install.packages(file_name_and_path, repos = NULL, type="source")
 Once installed in R, see inst/cwms_read_r_demo.r (or code below) for a demo!
 
 
-# Demonstrate cwms_read_CDA.r usage
-rm(list = ls())
+# Demo of cwms_read.r
+
+```r
 library(devtools)
 install_github("nbuccola/cwmsr")
 library(cwmsr)
@@ -82,3 +83,4 @@ fig
 
 ggplot2::ggsave(plot = fig,filename = file.path(LocalWd,paste0(figTitle,'.png')),
                 device='png',width=10,height=6)
+```
