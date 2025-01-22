@@ -13,6 +13,7 @@
 #' @keywords CWMS Corps USACE data retrieval
 #' @examples
 #' @export
+#' @importFrom jsonlite fromJSON
 cwms_to_dt<-function(path, start_date, end_date, timezone = timezone,
                      timeseries,CDApath = CDApath,linux=F){
   url = get_url(path, start_date, end_date, timezone = timezone,timeseries)
