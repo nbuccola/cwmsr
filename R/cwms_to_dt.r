@@ -15,7 +15,6 @@
 #' @export
 cwms_to_dt<-function(path, start_date, end_date, timezone = timezone,
                      timeseries,CDApath = CDApath,linux=F){
-  library(jsonlite)
   url = get_url(path, start_date, end_date, timezone = timezone,timeseries)
   print(paste(paste('`',path,sep=''),'`',sep=''))
   print(url)
