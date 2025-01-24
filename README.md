@@ -62,6 +62,7 @@ x = cwmsPivot_longer(x24) |>
                 )
 figTitle <- "DET-BCL_2024_Temperature_Operations"
 
+# Create plot of data using ggplot
 library(ggplot2)
 fig <-
   ggplot(x |>
@@ -86,9 +87,6 @@ fig <-
         ) +
   ggtitle(figTitle)
 fig
-
-ggplot2::ggsave(plot = fig,filename = file.path(LocalWd,paste0(figTitle,'.png')),
-                device='png',width=10,height=6)
 
 ggplot2::ggsave(plot = fig,filename = file.path(LocalWd,paste0(figTitle,'.png')),
                 device='png',width=10,height=6)
