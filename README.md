@@ -17,9 +17,9 @@ install.packages(file_name_and_path, repos = NULL, type="source")
 Once installed in R, see inst/cwms_read_r_demo.r (or code below) for a demo!
 
 
-# Demo of cwms_read.r
 
 ```r
+# Demo of get_cwms.r
 library(devtools)
 install_github("nbuccola/cwmsr")
 install.packages('cwmsr')
