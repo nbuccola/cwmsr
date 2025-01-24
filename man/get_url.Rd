@@ -2,8 +2,7 @@
 % Please edit documentation in R/get_url.r
 \name{get_url}
 \alias{get_url}
-\title{Function to create full URL for cwms_get.r
-Written by NBuccola on 2025-01-21 based on Jetilton; taken from https://github.com/jetilton/cwms_read/blob/master/cwms_read.r}
+\title{Function to create full URL for cwms_get.r}
 \usage{
 get_url(
   path,
@@ -32,10 +31,9 @@ a data.frame of the data
 }
 \description{
 Function to create full URL for cwms_get.r
-Written by NBuccola on 2025-01-21 based on Jetilton; taken from https://github.com/jetilton/cwms_read/blob/master/cwms_read.r
 }
 \author{
-Norman Buccola
+Norman Buccola based on Jetilton; https://github.com/jetilton/cwms_read/blob/master/cwms_read.r
 }
 \keyword{CWMS}
 \keyword{Corps}

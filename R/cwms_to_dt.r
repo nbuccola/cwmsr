@@ -1,6 +1,4 @@
 #' Function to get CWMS data from one path on the USACE CDA
-#' Written by NBuccola on 2025-01-21 based on Jetilton; taken from https://github.com/jetilton/cwms_read/blob/master/cwms_read.r
-#'
 #' @param path character; CWMS paths to read data from
 #' @param start_date character; The begin date of extraction, in 'YYYY-MM-DD HH:MM' format
 #' @param end_date character; The end date of extraction, in 'YYYY-MM-DD HH:MM' format
@@ -9,7 +7,7 @@
 #' @param CDApath = character; default to 'https://wm.nww.ds.usace.army.mil:8243/nwdp-data/'; untested for other districts...
 #' @param linux = logical; if running on LINUX OS, use "T"
 #' @return a data.frame of the data
-#' @author Norman Buccola
+#' @author Norman Buccola based on Jetilton; https://github.com/jetilton/cwms_read/blob/master/cwms_read.r
 #' @keywords CWMS Corps USACE data retrieval
 #' @examples
 #' @export

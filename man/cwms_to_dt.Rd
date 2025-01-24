@@ -2,8 +2,7 @@
 % Please edit documentation in R/cwms_to_dt.r
 \name{cwms_to_dt}
 \alias{cwms_to_dt}
-\title{Function to get CWMS data from one path on the USACE CDA
-Written by NBuccola on 2025-01-21 based on Jetilton; taken from https://github.com/jetilton/cwms_read/blob/master/cwms_read.r}
+\title{Function to get CWMS data from one path on the USACE CDA}
 \usage{
 cwms_to_dt(
   path,
@@ -35,10 +34,9 @@ a data.frame of the data
 }
 \description{
 Function to get CWMS data from one path on the USACE CDA
-Written by NBuccola on 2025-01-21 based on Jetilton; taken from https://github.com/jetilton/cwms_read/blob/master/cwms_read.r
 }
 \author{
-Norman Buccola
+Norman Buccola based on Jetilton; https://github.com/jetilton/cwms_read/blob/master/cwms_read.r
 }
 \keyword{CWMS}
 \keyword{Corps}
