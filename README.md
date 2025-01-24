@@ -4,12 +4,15 @@ R Functions to get CWMS data from the USACE CDA
 2 current options for installation in R:
 
 1) You can try using different parameter alternatives in the devtools package.
+```r
 install.packages("devtools")
 library(devtools)
 install_github("nbuccola/cwmsr")
-
+```
 2) Another way is trying to download the zip file and install it with the normal install.packages() function in R with:
+```r
 install.packages(file_name_and_path, repos = NULL, type="source")
+```
 
 Once installed in R, see inst/cwms_read_r_demo.r (or code below) for a demo!
 
