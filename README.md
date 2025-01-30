@@ -19,7 +19,13 @@ Once installed in R, see inst/cwms_read_r_demo.r (or code below) for a demo!
 
 
 ```r
-# Demo of get_cwms.r
+# install from github
+# remotes::install_github("nbuccola/cwmsr")
+
+# Demonstrate cwms_read_CDA.r usage
+library(cwmsr)
+
+LocalWd <- tempdir()
 library(devtools)
 install_github("nbuccola/cwmsr")
 install.packages('cwmsr')
