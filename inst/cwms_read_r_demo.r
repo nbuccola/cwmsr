@@ -1,10 +1,10 @@
+# install from github
+# remotes::install_github("nbuccola/cwmsr")
+
 # Demonstrate cwms_read_CDA.r usage
-rm(list = ls())
-library(devtools)
-install_github("nbuccola/cwmsr")
-install.packages('cwmsr')
 library(cwmsr)
-LocalWd <- 'C:/Users/g2echnb9/OneDrive - US Army Corps of Engineers/Desktop'
+
+LocalWd <- tempdir()
 CDApath <- 'https://wm.nww.ds.usace.army.mil:8243/nwdp-data/'
 # Setup input variables
 beginDate <- strptime('2024-01-01',"%Y-%m-%d",tz = 'PST8PDT')
@@ -21,6 +21,7 @@ x24 <- get_cwms(CWMSpaths,start_date=beginDate,end_date=endDate,
 
 library(dplyr)
 library(tidyr)
+library(ggplot2)
 cwmsPivot_longer <- function(x){
   x |> 
     tidyr::pivot_longer(-Date) |>
