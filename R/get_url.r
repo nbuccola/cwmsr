@@ -11,6 +11,10 @@
 #' @author Norman Buccola
 #' @keywords CWMS Corps USACE data retrieval
 #' @examples
+#' \dontrun{
+#' get_url('DET.Elev-Forebay.Inst.0.0.Best', '2024-08-01', '2024-12-31')
+#' }
+#' @importFrom utils URLencode
 #' @export
 get_url<-function(path, start_date, end_date, timezone = 'PST8PDT',
                   timeseries=T,
