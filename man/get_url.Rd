@@ -34,6 +34,11 @@ a data.frame of the data
 Function to create full URL for cwms_get.r
 Written by NBuccola on 2025-01-21 based on Jetilton; taken from https://github.com/jetilton/cwms_read/blob/master/cwms_read.r
 }
+\examples{
+\dontrun{
+get_url('DET.Elev-Forebay.Inst.0.0.Best', '2024-08-01', '2024-12-31')
+}
+}
 \author{
 Norman Buccola
 }

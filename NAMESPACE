@@ -3,5 +3,8 @@
 export(cwms_to_dt)
 export(get_cwms)
 export(get_url)
+importFrom(foreach,"%do%")
 importFrom(foreach,foreach)
 importFrom(jsonlite,fromJSON)
+importFrom(utils,URLencode)
+importFrom(utils,download.file)

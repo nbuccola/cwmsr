@@ -34,6 +34,14 @@ a data.frame of the data
 Wrapper function to get CWMS data from the USACE CDA
 Written by NBuccola on 2025-01-21 based on Jetilton; taken from https://github.com/jetilton/cwms_read/blob/master/cwms_read.r
 }
+\examples{
+\dontrun{
+beginDate <- strptime('2024-08-01',"\%Y-\%m-\%d",tz = 'PST8PDT')
+endDate <- strptime('2024-12-31',"\%Y-\%m-\%d",tz = 'PST8PDT')
+CWMSpaths <- 'DET.Elev-Forebay.Inst.0.0.Best'
+get_cwms(CWMSpaths, beginDate, endDate)
+}
+}
 \author{
 Norman Buccola
 }

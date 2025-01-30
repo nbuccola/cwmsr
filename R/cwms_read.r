@@ -11,11 +11,20 @@
 #' @author Norman Buccola
 #' @keywords CWMS Corps USACE data retrieval
 #' @examples
+#' \dontrun{
+#' beginDate <- strptime('2024-08-01',"%Y-%m-%d",tz = 'PST8PDT')
+#' endDate <- strptime('2024-12-31',"%Y-%m-%d",tz = 'PST8PDT')
+#' CWMSpaths <- 'DET.Elev-Forebay.Inst.0.0.Best'
+#' get_cwms(CWMSpaths, beginDate, endDate)
+#' }
 #' @export
-#' @importFrom foreach foreach
+#' @importFrom foreach foreach %do%
 get_cwms<-function(paths, start_date, end_date, timezone = 'PST8PDT',
                    timeseries=T,
                    CDApath = 'https://wm.nww.ds.usace.army.mil:8243/nwdp-data/'){
+
+  # shortcut to avoid R CMD Check warning
+  y <- NULL
   date_diff <- end_date - start_date
   parse_length <- 90 #days
   if(date_diff > parse_length){

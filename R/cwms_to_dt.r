@@ -12,8 +12,13 @@
 #' @author Norman Buccola
 #' @keywords CWMS Corps USACE data retrieval
 #' @examples
+#' \dontrun{
+#' cwms_to_dt('DET.Elev-Forebay.Inst.0.0.Best', '2024-08-01', '2024-12-31',
+#'   "PST8PDT", timeseries = TRUE)
+#' }
 #' @export
 #' @importFrom jsonlite fromJSON
+#' @importFrom utils download.file
 cwms_to_dt<-function(path, start_date, end_date, timezone = timezone,
                      timeseries,CDApath = CDApath,linux=F){
   url = get_url(path, start_date, end_date, timezone = timezone,timeseries)
