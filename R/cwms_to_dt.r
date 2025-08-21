@@ -14,7 +14,7 @@
 #' @importFrom jsonlite fromJSON
 cwms_to_dt<-function(path, start_date, end_date, timezone = timezone,
                      timeseries,CDApath = CDApath,linux=F){
-  url = get_url(path, start_date, end_date, timezone = timezone,timeseries)
+  url = get_url(path, start_date, end_date, timezone = timezone,timeseries=timeseries,CDApath = CDApath)
   print(paste(paste('`',path,sep=''),'`',sep=''))
   print(url)
   if(linux){
