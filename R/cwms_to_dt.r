@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 #' Function to get CWMS data from one path on the USACE CDA
 #' @param path character; CWMS paths to read data from
 #' @param start_date character; The begin date of extraction, in 'YYYY-MM-DD HH:MM' format
