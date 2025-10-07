@@ -1,0 +1,252 @@
+---
+title: "GetCWMSdataWill"
+author: "Norm Buccola"
+date: "2025-10-06"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Analysis of Operations and WQ from CWMS
+
+
+```{r SetupParams}
+# Get operations, temperature, TDG data for analysis
+rm(list = ls())
+# First time this is run, need to install the following packages
+#install.packages(c('reshape2','foreach','lubridate','ggplot2','plyr','RColorBrewer','scales','data.table','magrittr',
+# 'tidyverse','plotly','akima','plotly'), repos='http://cran.us.r-project.org')
+#library(devtools)
+#install_github("nbuccola/cwmsr")
+#install.packages('cwmsr')
+library(cwmsr)
+library(foreach)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+#install.packages('tidyverse')
+library(tidyverse)
+#library(purrr)
+#library(readxl)
+#library(w2r)
+LocalWd <- 'C:/Repositories/cwmsr'
+WriteDir <- 'C:/Users/g2echnb9/OneDrive - US Army Corps of Engineers/Documents/WOOT/Analysis'
+CDApath <- 'https://wm.nws.ds.usace.army.mil:8243/nwdp-data/'
+# Setup input variables
+bdate <- strptime('2025-08-01',"%Y-%m-%d",tz = 'PST8PDT')
+edate <- strptime('2025-10-06',"%Y-%m-%d",tz = 'PST8PDT')
+yrs <- unique(c(format(bdate,'%Y'),format(edate,'%Y')))
+
+# Read in JSON config file for all project data paths
+cnfg = jsonlite::fromJSON(file.path(LocalWd,"WillCWMSTempTDGConfig.json"))
+pthShtcts = cnfg[['pathShortcuts']]
+cnfg = cnfg[['projects']]
+names(cnfg)
+Projects = c('CGR','FAL') #see pathShortcuts in json file
+#Projects = c('Will') #see pathShortcuts in json file
+if(any(Projects %in% names(pthShtcts))){
+  whichProj <- which(names(pthShtcts) %in% Projects)
+  whichProj <- which(names(cnfg) %in% pthShtcts[[whichProj]])
+}else{
+  whichProj <- which(names(cnfg) %in% Projects)
+}
+
+PreviousRdataDir = NA
+
+if(is.na(PreviousRdataDir)){
+  # Create Folder For New Data
+  RdataDir <- file.path(WriteDir,paste0(gsub(',| ','',toString(Projects)),'_OpsTempTDG',yrs))
+  dir.create(RdataDir)
+}else{
+  RdataDir <- PreviousRdataDir
+}
+    
+# Example using a common colorblind-friendly palette
+# cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+# clrs<- cbPalette[2:4]
+# names(clrs) <- c("2023","2024","2025")
+
+
+```
+
+## Get data for each project
+
+```{r GetCWMSopsTempData, echo=FALSE}
+
+for(i in whichProj){
+  i = 5
+  Proj <- cnfg[[i]][[grep('ProjAcrnm',names(cnfg[[i]]))]]
+  print(Proj)
+  if(!is.na(PreviousRdataDir)){
+    fls <- list.files(RdataDir,pattern = '.Rdata')
+    RdataDirProj <- file.path(RdataDir,fls[grepl(paste0(Proj,'_'),fls)])
+  }else{
+    print(paste("Getting",Proj,"Data from",bdate,'to',edate))
+    dataFileName <- paste0(Proj,'_OpsTempTDG',yrs,'.Rdata')
+    RdataDirProj <- file.path(RdataDir,dataFileName)
+    source(file.path(LocalWd,'R','get_cwms_utilities.r'))
+    GetCWMSdata(p = cnfg[[i]],bdate=bdate,edate = edate)
+  }
+  load(RdataDirProj)
+
+  # Calculate weighted average of inflow temperature
+  if(any(grepl('QinPath',names(cwms_paths))) & !grepl('LOP',Proj)){
+    CalcTin()
+  }
+  
+  # Remove Outliers, Calculate Dailys, Monthly, Annual Summaries, Plot output
+  calcDailys()
+  
+  #Re-save as Rdata File
+  save(xw,xwd,xwdSum,xAnn,Proj,cwms_paths,
+       file = file.path(LocalWd,dataFileName))
+  
+  rm(xw,xwd,xAnn,xwdSum,Proji,dataFileName)
+
+}
+
+# Iterate through Rdata files and merge into one large file (xw, xwd,xwdSum,xAnn variables)
+newDataFileName <- paste0('_HistOpsTempTDG',format(bdate,'%Y'),'-',format(edate,'%Y'),'.Rdata')
+if(!file.exists(file.path(file.path(LocalWd,HistoricPath,newDataFileName)))){
+  merge_tibbles_from_rdata(newDataFileName)
+}
+load(file.path(file.path(LocalWd,HistoricPath,newDataFileName)))
+
+MakeMultiYrPlots()
+
+
+```
+
+```{r FishData}
+
+for(i in iterateHere){
+  
+  # Read in AFF Fish count data
+  AFF <- read_csv(file.path(LocalWd,'CougarFishTrap_AllData_ForNorm.csv')) %>%
+    dplyr::select(`Date`,contains(c('Chinook','STS'))) |> #_unmarked _unmarked
+    pivot_longer(cols=-Date) |>
+    mutate(Date = as.Date(Date,format='%m/%d/%Y'),
+           ChOrSt = if_else(grepl('Chinook',name),'Total_CH','Total_ST')) |>
+    group_by(Date,ChOrSt) |>
+    reframe(#Year = Year,
+            Total = sum(value,na.rm=T)) |>
+    pivot_wider(names_from = ChOrSt,values_from = Total) |>
+    mutate(Year = as.factor(strftime(Date,'%Y'))) |>
+    group_by(Year) |>
+    reframe(Date = Date,
+            Cum_CH = cumsum(Total_CH),
+            Cum_ST = cumsum(Total_ST)) |>
+    select(-Year) 
+  
+  # Read in RST Fish trap count data
+  rstFls <- list.files(file.path(LocalWd,'CougarRST_EAS_2023-2025'))
+  rm(X)
+  for(i in 1:length(rstFls)){
+    x <- read_xlsx(file.path(LocalWd,'CougarRST_EAS_2023-2025',rstFls[i]),sheet=1) |>
+      janitor::clean_names() 
+    x <- x |>
+      select('week_of_the_project',"x_axis_labels2","trap",
+             "weekly_catch",
+             contains(c("cumulative",'elev_forebayft','spill_cfs','avg_gen')))|>
+      mutate(Year = rev(strsplit(rstFls[i],' ')[[1]])[1],
+             Year = as.numeric(gsub('.xlsx','',Year)))
+    colnames(x) <- gsub('cumulative_catch','cumulative_count',colnames(x))
+    if(i==1){
+      X <- x
+    }else{
+      X <- rbind(X,x)
+    }
+  }
+  RST <- X |>
+    rename(Week = week_of_the_project,xlabs = x_axis_labels2,
+           Catch = weekly_catch,CumCount = cumulative_count,
+           ForeBayElev = avg_of_avg_of_cgr_elev_forebayft,
+           Spill = wk_avg_spill_cfs,
+           Gen= wk_avg_gen_cfs) |>
+    # Convert week to date
+    mutate(Date = as.Date(paste0(Year,'-',
+                            sprintf("%02d",as.numeric(unlist(lapply(xlabs,function(x)strsplit(x,'_')[[1]][1])))),'-',
+                            unlist(lapply(xlabs,function(x)strsplit(x,'_')[[1]][2]))),format='%Y-%d-%b')) |>
+    filter(!is.na(Week),!is.na(trap)) |>
+    pivot_wider(id_cols = c(Week,Date,Year),names_from = trap,values_from = c(Catch,CumCount)) |>
+    arrange(Week)
+  rm(x,X)
+  str(RST)
+  summary(RST)
+  #print(RST[RST$Year==2025,],n=200)
+
+  # Calc AFF upstream migrant counts and ops data metrics
+  calcAFFAnnMetrics()
+
+  # Calc RST downstream migrant counts and ops data metrics
+  calcDSPassAnnMetrics()
+
+  # Left off here
+  
+  #Re-save as Rdata File
+  save(xw,xwd,xwdSum,xAnn,Proj,cwms_paths,
+       file = file.path(LocalWd,dataFileName))
+  
+  rm(xw,xwd,xAnn,xwdSum,Proj,dataFileName)
+
+  }
+  
+  # Iterate through Rdata files and merge into one large file (xw, xwd,xwdSum,xAnn variables)
+  newDataFileName <- paste0('DETBCLGPRFOSHCRLOPDEX_HistOpsTempTDG',format(bdate,'%Y'),'-',format(edate,'%Y'),'.Rdata')
+  if(!file.exists(file.path(file.path(LocalWd,HistoricPath,newDataFileName)))){
+    merge_tibbles_from_rdata(newDataFileName)
+  }
+  load(file.path(file.path(LocalWd,HistoricPath,newDataFileName)))
+
+  # Read in met files to merge with other WQ data (xw, xwd variables)
+  ReadMergeMetData()
+  
+  newDataFileName <- paste0('DETBCLGPRFOSHCRLOPDEX_HistOpsTempTDGwDET-BCLops',format(bdate,'%Y'),'-',format(edate,'%Y'),'.Rdata')
+  loadScrapedOpsLogBooks(newDataFileName)
+
+}
+
+
+
+
+
+```
+
+
+
+
+
+```{r WriteDSSfile}
+# Set which years for DSS file creation
+extractYr <- 2016
+# For now, write a csv file for 2016 data
+# v1.01  = DETBCLGPRFOSHCRLOPDEX_HistOpsTempMetTDGwDET-BCLops
+write.csv(XwMetOps |> 
+            filter(DateTime >= as.POSIXct('2016-01-01') &
+                     DateTime < as.POSIXct('2017-01-01')),
+          file = file.path(LocalWd,'ResSim','data','DSSfiles','WillTempHourly2016_v1.01.csv'),
+          quote = F,row.names = F)
+
+write.csv(XwdMetOps |> 
+            filter(Date >= as.Date('2016-01-01') &
+                     Date < as.Date('2017-01-01')),
+          file = file.path(LocalWd,'ResSim','data','DSSfiles','WillTempDaily2016_v1.01.csv'),
+          quote = F,row.names = F)
+
+
+remotes::install_github("mkoohafkan/dssrip2",build_vignettes = TRUE)
+library(dssrip2)
+
+# Left off here, not able to run this yet
+
+dss_install_monolith()
+dss_connect(monolith = TRUE)
+# Subset the year of interest
+
+
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

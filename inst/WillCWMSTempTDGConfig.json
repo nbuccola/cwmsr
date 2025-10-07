@@ -1,0 +1,881 @@
+{
+  "ospaths": {
+    "ScriptDir": "//nwd/nwp-ETDS/Engineering_Division/CENWP-EC-H/CENWP-EC-HR/Water_Quality/RealTimeTools/SpillPercentageTool",
+    "HtmlDir": "//nwd/nwp-ETDS/Engineering_Division/CENWP-EC-H/CENWP-EC-HR/Water_Quality/RealTimeTools/SpillPercentageTool",
+    "ImageDir": "//nwd/nwp-ETDS/Engineering_Division/CENWP-EC-H/CENWP-EC-HR/Water_Quality/RealTimeTools/SpillPercentageTool"
+  },
+  "global": {
+    "spawndays": [244,263,274]
+  },
+  "pathShortcuts":{
+    "Will": ["DET","BCL","GPR","FOS","CGR","BLU","HCR","FAL","LOP","DEX","DOR","COT","FRN"],
+    "NS": ["DET","BCL"],
+    "SS": ["GPR","FOS"],
+    "MK": ["CGR","BLU"],
+    "MF": ["HCR","FAL","LOP","DEX"],
+    "CFLT": ["DOR","COT","FRN"]
+  },
+  "projects": {
+    "DET": {
+      "ProjAcrnm": "DET",
+	  "UpstrmSite1": "BCKO",
+	  "UpstrmSite2": "BRBO",
+	  "UpstrmSite3": "DEQO",
+      "DwnStrmSite1Acrnm": "DET-TailwaterRightBank-Streambed",
+	  "DwnStrmSite2Acrnm": "BCLO",
+      "OutletInfo": {
+        "spillway": {
+          "display_name": "Spillway",
+          "elevation": {
+            "min": {
+              "type": "path",
+              "value": "DET.Elev.Inst.0.Spillway Crest",
+			  "as_comment": 1541
+            },
+            "max": {
+              "type": "path",
+              "value": "DET.Elev.Inst.0.Top of Conservation",
+			  "as_comment": 1574
+            }
+          }
+        },
+        "power": {
+          "display_name": "Power",
+          "elevation": {
+            "min": {
+              "type": "path",
+              "value": "DET-Penstock.Elev.Inst.0.Centerline"
+            },
+            "max": {
+              "type": "path",
+              "value": "DET.Elev.Inst.0.Top of Conservation"
+            }
+          }
+        },
+        "URO": {
+          "display_name": "URO",
+          "elevation": {
+            "min": {
+				"type": "hardcoded",
+				"value": 1340,
+				"centerline_offset": 5
+            },
+            "max": {
+              "type": "hardcoded",
+              "value": 1541
+            }
+          }
+        },
+        "LRO": {
+          "display_name": "LRO",
+          "elevation": {
+            "min": {
+              "type": "hardcoded",
+              "value": 1260,
+			  "centerline_offset": 5
+            },
+            "max": {
+              "type": "hardcoded",
+              "value": 1465
+            }
+          }
+        }
+      },
+      "cwms_paths": {
+        "temp_strings": [
+          "_S1-D0,5ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D10ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D20ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D30ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D40ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D60ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D80ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D100ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D120ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D140ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D160ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D180ft.Temp-Water.Inst.0.0.Best"
+        ],
+		"TinPath": ".Temp-Water.Inst.0.0.Best",
+		"QinPath": ".Flow.Inst.0.0.Best",
+		"QinPathTot": ".Flow-In.Ave.15Minutes.3Hours.Best",
+		"FBWSELVPath": ".Elev-Forebay.Inst.0.0.Best",
+		"OutPath": ".Flow-Out.Ave.1Hour.1Hour.CBT-REV",
+		"GenPath": ".Flow-Gen.Ave.1Hour.1Hour.CBT-REV",
+		"SpillPath": ".Flow-Spill.Ave.1Hour.1Hour.CBT-REV"
+      }
+    },
+	"BCL": {
+      "ProjAcrnm": "BCL",
+      "DwnStrmSite1Acrnm": "BCLO",
+      "DwnStrmTDGSite1Acrnm": "BCLO",
+	  "DwnStrmTDGSite2Acrnm": "BCL-Fishtrap-Streambed",
+	  "DwnStrmTDGSite3Acrnm": "BCL-Fishtrap",
+	  "DwnStrmTDGSite4Acrnm": "MNTO-USACEPipe",
+      "OutletInfo": {
+        "spillway": {
+          "display_name": "Spillway",
+          "elevation": {
+            "min": {
+              "type": "path",
+              "value": "BCL.Elev.Inst.0.Spillway Crest",
+			  "as_comment": 1161.5
+            },
+            "max": {
+              "type": "path",
+              "value": "BCL.Elev.Inst.0.Top of Max Flood Control",
+			  "as_comment": 1210
+            }
+          }
+        },
+        "power": {
+          "display_name": "Power",
+          "elevation": {
+            "min": {
+              "type": "path",
+              "value": "BCL-Penstock.Elev.Inst.0.Invert"
+            },
+            "max": {
+              "type": "path",
+               "value": "BCL.Elev.Inst.0.Top of Max Flood Control",
+			  "as_comment": 1210
+           }
+          }
+        }
+      },
+      "cwms_paths": {
+        "temp_strings": [
+          "_S1-D0,5ft.Temp-Water.Inst.0.0.MIXED_REV",
+          "_S1-D1ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D10ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D20ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D30ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D40ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D50ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D60ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D70ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D80ft.Temp-Water.Inst.0.0.Best"
+        ],
+		"QinPathTot": ".Flow-In.Ave.15Minutes.3Hours.Best",
+		"GenPath": ".Flow-Gen.Ave.1Hour.1Hour.CBT-REV",
+		"SpillPath": ".Flow-Spill.Ave.1Hour.1Hour.CBT-REV",
+		"FBWSELVPath": ".Elev-Forebay.Inst.0.0.Best",
+		"TdwnStrmPath": ".Temp-Water.Inst.0.0.Best",
+		"TDGdwnStrmPath": ".%-Saturation-TDG.Inst.0.0.Best",
+		"OutPath": ".Flow-Out.Ave.1Hour.1Hour.CBT-REV",
+		"WCPath": ".Elev-RuleCurve.Inst.~1Day.0.CENWP-CALC",
+		"QTargPath": "BCLO.Flow.Inst.0.NMFS-BIOP-PUB",
+		"MaxTTargPath": "BCLO.Temp-Water.Max.1Day.COORD_Fisheries_Target",
+        "MinTTargPath": "BCLO.Temp-Water.Min.1Day.COORD_Fisheries_Target"
+      }
+    },
+    "GPR": {
+      "ProjAcrnm": "GPR",
+      "DwnStrmSite1Acrnm": "GPRO",
+	  "DwnStrmSite2Acrnm": "SSFO",
+   	  "UpstrmSite1": "QCCO",
+	  "UpstrmSite2": "MSCO",
+      "OutletInfo": {
+        "spillway": {
+          "display_name": "Spillway",
+          "elevation": {
+            "min": {
+              "type": "path",
+              "value": "GPR.Elev.Inst.0.Spillway Crest"
+            },
+            "max": {
+              "type": "path",
+              "value": "GPR.Elev.Inst.0.Top of Conservation"
+            }
+          }
+        },
+        "power": {
+          "display_name": "Power",
+          "elevation": {
+            "min": {
+              "type": "path",
+              "value": "GPR-Penstock.Elev.Inst.0.Centerline"
+            },
+            "max": {
+			  "type": "path",
+              "value": "GPR.Elev.Inst.0.Top of Conservation"
+             }
+          }
+        },
+        "RO": {
+          "display_name": "RO",
+          "elevation": {
+            "min": {
+              "type": "path",
+              "value": "GPR-RegulatingOutlets.Elev.Inst.0.Invert-Inlet",
+			  "centerline_offset": 5,
+			  "as_comment":	"Based on 10"
+            },
+            "max": {
+			  "type": "path",
+              "value": "GPR.Elev.Inst.0.Top of Conservation"
+            }
+          }
+        }
+      },
+      "cwms_paths": {
+        "temp_strings": [
+		"_S1-E770ft.Temp-Water.Inst.0.0.Best",
+        "_S1-E780ft.Temp-Water.Inst.0.0.Best",
+        "_S1-E790ft.Temp-Water.Inst.0.0.Best",
+        "_S1-E800ft.Temp-Water.Inst.0.0.Best",
+        "_S1-E810ft.Temp-Water.Inst.0.0.Best",
+        "_S1-E820ft.Temp-Water.Inst.0.0.Best",
+        "_S1-E830ft.Temp-Water.Inst.0.0.Best",
+        "_S1-E840ft.Temp-Water.Inst.0.0.Best",
+        "_S1-E850ft.Temp-Water.Inst.0.0.Best",
+        "_S1-E860ft.Temp-Water.Inst.0.0.Best",
+        "_S1-E870ft.Temp-Water.Inst.0.0.Best",
+        "_S1-E880ft.Temp-Water.Inst.0.0.Best",
+        "_S1-E890ft.Temp-Water.Inst.0.0.Best",
+        "_S1-E900ft.Temp-Water.Inst.0.0.Best",
+        "_S1-E910ft.Temp-Water.Inst.0.0.Best",
+        "_S1-E920ft.Temp-Water.Inst.0.0.Best",
+        "_S1-E930ft.Temp-Water.Inst.0.0.Best",
+        "_S1-E940ft.Temp-Water.Inst.0.0.Best",
+        "_S1-E950ft.Temp-Water.Inst.0.0.Best",
+        "_S1-E960ft.Temp-Water.Inst.0.0.Best",
+        "_S1-E970ft.Temp-Water.Inst.0.0.Best",
+        "_S1-E980ft.Temp-Water.Inst.0.0.Best",
+        "_S1-E990ft.Temp-Water.Inst.0.0.Best",
+        "_S1-E1000ft.Temp-Water.Inst.0.0.Best",
+        "_S1-E1010ft.Temp-Water.Inst.0.0.Best"
+        ],
+		"FBWSELVPath": ".Elev-Forebay.Inst.0.0.Best",
+		"QinPath": ".Flow.Inst.0.0.Best",
+		"QinPathTot": ".Flow-In.Ave.1Hour.3Hours.Best",
+		"SpillPath": ".Flow-Spill.Ave.1Hour.1Hour.CBT-REV",
+        "GenPath": ".Flow-Gen.Ave.1Hour.1Hour.CBT-REV",
+		"OutPath": ".Flow-Out.Ave.1Hour.1Hour.CBT-REV",
+        "DwnStrmSite1": "GPRO.Temp-Water.Inst.0.0.Best",
+        "DwnStrmSite2": "SSFO.Temp-Water.Inst.0.0.Best",
+		"WCPath": ".Elev-RuleCurve.Inst.~1Day.0.CENWP-CALC",
+		"QTargPath": "SSFO.Flow.Inst.0.NMFS-BIOP-PUB",
+        "MaxTTargPath": "SSFO.Temp-Water.Max.1Day.USACE_Temporary_Target",
+        "MinTTargPath": "SSFO.Temp-Water.Min.1Day.USACE_Temporary_Target",
+		"TinPath": ".Temp-Water.Inst.0.0.Best",
+		"TdwnStrmPath": ".Temp-Water.Inst.0.0.Best",
+		"TDGdwnStrmPath": ".%-Saturation-TDG.Inst.0.0.Best"
+      }
+    },
+	"FOS": {
+      "ProjAcrnm": "FOS",
+      "DwnStrmSite1Acrnm": "SSFO",
+	  "DwnStrmSite2Acrnm": "JFFO",
+	  "DwnStrmTDGSite1Acrnm": "SSFO",
+	  "UpstrmSite1": "GPRO",
+	  "UpstrmSite2": "SSCO",
+	  "OutletInfo": {
+        "spillway": {
+          "display_name": "Spillway",
+          "elevation": {
+            "min": {
+              "type": "path",
+              "value": "FOS.Elev.Inst.0.Spillway Crest"
+            },
+            "max": {
+              "type": "path",
+              "value": "FOS.Elev.Inst.0.Top of Conservation"
+            }
+          }
+        },
+        "power": {
+          "display_name": "Power",
+          "elevation": {
+            "min": {
+              "type": "path",
+              "value": "FOS-Penstock.Elev.Inst.0.Centerline"
+            },
+            "max": {
+			  "type": "path",
+              "value": "FOS.Elev.Inst.0.Top of Conservation"
+             }
+          }
+        }
+      },
+      "cwms_paths": {
+        "temp_strings": [
+          "_S1-D0,5ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D5ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D10ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D15ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D20ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D30ft.Temp-Water.Inst.0.0.Best",
+		  "_S1-D40ft.Temp-Water.Inst.0.0.Best",
+		  "_S1-D50ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D60ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D70ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D80ft.Temp-Water.Inst.0.0.Best"
+        ],
+		"TinPath": ".Temp-Water.Inst.0.0.Best",
+		"QinPath2": ".Flow.Inst.0.0.Best",
+		"QinPathTot": ".Flow-In.Ave.15Minutes.6Hours.Best",
+		"OutPath": ".Flow-Out.Ave.1Hour.1Hour.CBT-REV",
+		"GenPath": ".Flow-Gen.Ave.1Hour.1Hour.CBT-REV",
+        "SpillPath": ".Flow-Spill.Ave.1Hour.1Hour.CBT-REV",
+		"FBWSELVPath": ".Elev-Forebay.Inst.0.0.Best",
+		"WCPath": ".Elev-RuleCurve.Inst.~1Day.0.CENWP-CALC",
+		"TdwnStrmPath": ".Temp-Water.Inst.0.0.Best",
+		"TDGdwnStrmPath": ".%-Saturation-TDG.Inst.0.0.Best",
+		"QTargPath": "SSFO.Flow.Inst.0.NMFS-BIOP-PUB",
+        "MaxTTargPath": "SSFO.Temp-Water.Max.1Day.USACE_Temporary_Target",
+        "MinTTargPath": "SSFO.Temp-Water.Min.1Day.USACE_Temporary_Target"
+      }
+    },
+    "CGR": {
+      "ProjAcrnm": "CGR",
+      "DwnStrmSite1Acrnm": "CGRO",
+      "DwnStrmSite2Acrnm": "VIDO",
+	  "DwnStrmTDGSite1Acrnm": "CGR-RegulatingOutlets-Channel-StmBed",
+	  "DwnStrmTDGSite2Acrnm": "CGRO",
+      "UpstrmSite1": "SFCO",
+	  "OutletInfo": {
+        "spillway": {
+          "display_name": "Spillway",
+          "elevation": {
+            "min": {
+              "type": "path",
+              "value": "CGR.Elev.Inst.0.Spillway Crest"
+            },
+            "max": {
+              "type": "path",
+              "value": "CGR.Elev.Inst.0.Top of Conservation"
+            }
+          }
+        },
+        "power": {
+          "display_name": "Power",
+          "elevation": {
+            "min": {
+              "type": "path",
+              "value": "CGR-Penstock.Elev.Inst.0.Centerline"
+            },
+            "max": {
+			  "type": "path",
+              "value": "CGR.Elev.Inst.0.Top of Conservation"
+             }
+          }
+        },
+        "RO": {
+          "display_name": "RO",
+          "elevation": {
+            "min": {
+              "type": "path",
+              "value": "CGR-RegulatingOutlets.Elev.Inst.0.Invert-Inlet",
+			  "centerline_offset": 6
+            },
+            "max": {
+			  "type": "path",
+              "value": "CGR.Elev.Inst.0.Top of Conservation"
+            }
+          }
+        }
+      },
+      "cwms_paths": {
+        "temp_strings": [
+			"_S1-E1680ft.Temp-Water.Inst.0.0.Best",
+			"_S1-E1674ft.Temp-Water.Inst.0.0.Best",
+			"_S1-E1668ft.Temp-Water.Inst.0.0.Best",
+			"_S1-E1662ft.Temp-Water.Inst.0.0.Best",
+			"_S1-E1656ft.Temp-Water.Inst.0.0.Best",
+			"_S1-E1650ft.Temp-Water.Inst.0.0.Best",
+			"_S1-E1644ft.Temp-Water.Inst.0.0.Best",
+			"_S1-E1638ft.Temp-Water.Inst.0.0.Best",
+			"_S1-E1632ft.Temp-Water.Inst.0.0.Best",
+			"_S1-E1626ft.Temp-Water.Inst.0.0.Best",
+			"_S1-E1620ft.Temp-Water.Inst.0.0.Best",
+			"_S1-E1614ft.Temp-Water.Inst.0.0.Best",
+			"_S1-E1608ft.Temp-Water.Inst.0.0.Best",
+			"_S1-E1602ft.Temp-Water.Inst.0.0.Best",
+			"_S1-E1596ft.Temp-Water.Inst.0.0.Best",
+			"_S1-E1590ft.Temp-Water.Inst.0.0.Best",
+			"_S1-E1584ft.Temp-Water.Inst.0.0.Best",
+			"_S1-E1578ft.Temp-Water.Inst.0.0.Best",
+			"_S1-E1572ft.Temp-Water.Inst.0.0.Best",
+			"_S1-E1560ft.Temp-Water.Inst.0.0.Best",
+			"_S1-E1548ft.Temp-Water.Inst.0.0.Best",
+			"_S1-E1536ft.Temp-Water.Inst.0.0.Best",
+			"_S1-E1524ft.Temp-Water.Inst.0.0.Best",
+			"_S1-E1504ft.Temp-Water.Inst.0.0.Best"
+			],
+		"TinPath": ".Temp-Water.Inst.0.0.Best",
+		"QinPath": ".Flow.Inst.0.0.Best",
+		"QinPathTot": ".Flow-In.Ave.15Minutes.3Hours.Best",
+		"OutPath": ".Flow-Out.Ave.1Hour.1Hour.CBT-REV",
+		"GenPath": ".Flow-Gen.Ave.1Hour.1Hour.CBT-REV",
+		"SpillPath": ".Flow-Spill.Ave.1Hour.1Hour.CBT-REV",
+		"FBWSELVPath": ".Elev-Forebay.Inst.0.0.Best",
+		"TdwnStrmPath": ".Temp-Water.Inst.0.0.Best",
+		"TDGdwnStrmPath": ".%-Saturation-TDG.Inst.0.0.Best",
+		"WCPath": ".Elev-RuleCurve.Inst.~1Day.0.CENWP-CALC",
+		"QTargPath": "CGRO.Flow.Inst.0.NMFS-BIOP-PUB",
+        "MaxTTargPath": "CGRO.Temp-Water.Max.1Day.NMFS_USFWS_ODFW_Target",
+        "MinTTargPath": "CGRO.Temp-Water.Min.1Day.NMFS_USFWS_ODFW_Target"
+      }
+    },
+	"BLU": {
+      "ProjAcrnm": "BLU",
+      "DwnStrmSite1Acrnm": "BLUO",
+      "UpstrmSite2": "BRTO",
+      "UpstrmSite1": "LRCO",
+      "OutletInfo": {
+        "spillway": {
+          "display_name": "Spillway",
+          "elevation": {
+            "min": {
+              "type": "path",
+              "value": "BLU.Elev.Inst.0.Spillway Crest"
+            },
+            "max": {
+              "type": "path",
+              "value": "BLU.Elev.Inst.0.Top of Conservation"
+            }
+          }
+        },
+        "RO": {
+          "display_name": "RO",
+          "elevation": {
+            "min": {
+              "type": "path",
+              "value": "BLU-RegulatingOutlets.Elev.Inst.0.Invert-Inlet",
+			  "centerline_offset": 6
+            },
+            "max": {
+			  "type": "path",
+              "value": "BLU.Elev.Inst.0.Top of Conservation"
+            }
+          }
+        }
+      },
+      "cwms_paths": {
+		"TinPath": ".Temp-Water.Inst.0.0.Best",
+		"QinPath2": ".Flow.Inst.0.0.Best",
+		"QinPathTot": ".Flow-In.Ave.15Minutes.3Hours.Best",
+		"OutPath": ".Flow-Out.Ave.1Hour.1Hour.CBT-REV",
+		"FBWSELVPath": ".Elev-Forebay.Inst.0.0.Best",
+		"TdwnStrmPath": ".Temp-Water.Inst.0.0.Best",
+        "SpillPath": ".Flow-Spill.Ave.1Hour.1Hour.CBT-REV",
+        "DwnStrmSite1": "BLUO.Temp-Water.Inst.0.0.Best"
+      }
+    },
+	"HCR": {
+      "ProjAcrnm": "HCR",
+      "DwnStrmSite1Acrnm": "HCRO",
+	  "DwnStrmTDGSite1Acrnm": "HCRO",
+      "UpstrmSite1": "HCOO",
+	  "UpstrmSite2": "MFOO",
+      "OutletInfo": {
+        "spillway": {
+          "display_name": "Spillway",
+          "elevation": {
+            "min": {
+              "type": "path",
+              "value": "HCR.Elev.Inst.0.Spillway Crest"
+            },
+            "max": {
+              "type": "path",
+              "value": "HCR.Elev.Inst.0.Top of Conservation"
+            }
+          }
+        },
+        "power": {
+          "display_name": "Power",
+          "elevation": {
+            "min": {
+              "type": "path",
+              "value": "HCR-Penstock.Elev.Inst.0.Centerline"
+            },
+            "max": {
+			  "type": "path",
+              "value": "HCR.Elev.Inst.0.Top of Conservation"
+             }
+          }
+        },
+        "RO": {
+          "display_name": "RO",
+          "elevation": {
+            "min": {
+              "type": "path",
+              "value": "HCR-RegulatingOutlets.Elev.Inst.0.Invert-Inlet",
+			  "centerline_offset": 6
+            },
+            "max": {
+			  "type": "path",
+              "value": "HCR.Elev.Inst.0.Top of Conservation"
+            }
+          }
+        }
+      },
+      "cwms_paths": {
+        "temp_strings": [
+			"_S1-D160ft.Temp-Water.Inst.0.0.Best",
+			"_S1-D140ft.Temp-Water.Inst.0.0.Best",
+			"_S1-D120ft.Temp-Water.Inst.0.0.Best",
+			"_S1-D100ft.Temp-Water.Inst.0.0.Best",
+			"_S1-D80ft.Temp-Water.Inst.0.0.Best",
+			"_S1-D60ft.Temp-Water.Inst.0.0.Best",
+			"_S1-D50ft.Temp-Water.Inst.0.0.Best",
+			"_S1-D40ft.Temp-Water.Inst.0.0.Best",
+			"_S1-D30ft.Temp-Water.Inst.0.0.Best",
+			"_S1-D20ft.Temp-Water.Inst.0.0.Best",
+			"_S1-D10ft.Temp-Water.Inst.0.0.Best",
+			"_S1-D0,5ft.Temp-Water.Inst.0.0.Best"
+      	],
+		"TinPath": ".Temp-Water.Inst.0.0.Best",
+		"QinPath2": ".Flow.Inst.0.0.Best",
+		"QinPathTot": ".Flow-In.Ave.15Minutes.3Hours.Best",
+		"OutPath": ".Flow-Out.Ave.1Hour.1Hour.CBT-REV",
+		"GenPath": ".Flow-Gen.Ave.1Hour.1Hour.CBT-REV",
+		"SpillPath": ".Flow-Spill.Ave.1Hour.1Hour.CBT-REV",
+		"FBWSELVPath": ".Elev-Forebay.Inst.0.0.Best",
+		"TdwnStrmPath": ".Temp-Water.Inst.0.0.Best",
+		"TDGdwnStrmPath": ".%-Saturation-TDG.Inst.0.0.Best",
+		"WCPath": ".Elev-RuleCurve.Inst.~1Day.0.CENWP-CALC",
+		"QTargPath": "HCRO.Flow.Inst.0.NMFS-BIOP-PUB",
+        "MaxTargPath": "HCRO.Temp-Water.Max.1Day.USACE_Biological_Reference",
+        "MinTargPath": "HCRO.Temp-Water.Min.1Day.USACE_Biological_Reference"
+      }
+    },
+    "FAL": {
+      "ProjAcrnm": "FAL",
+      "DwnStrmSite1Acrnm": "FALO",
+	  "UpstrmSite1": "FNFO",
+      "UpstrmSite2": "WCLO",
+	  "OutletInfo": {
+        "fishhornUpper": {
+          "display_name": "Fishhorn-Upper",
+          "elevation": {
+			"min": {
+              "type": "path",
+              "value": "FAL-Fishhorn-Upper.Elev.Inst.0.Centerline"
+			},
+            "max": {
+              "type": "path",
+              "value": "FAL.Elev.Inst.0.Top of Conservation"
+            }
+		  }
+        },
+        "fishhornMiddle": {
+          "display_name": "Fishhorn-Middle",
+          "elevation": {
+            "min": {
+              "type": "path",
+              "value": "FAL-Fishhorn-Middle.Elev.Inst.0.Centerline"
+			},
+            "max": {
+              "type": "path",
+              "value": "FAL.Elev.Inst.0.Top of Conservation"
+            }
+		  }
+        },
+		"fishhornLower": {
+          "display_name": "Fishhorn-Lower",
+          "elevation": {
+			"min": {
+              "type": "path",
+              "value": "FAL-Fishhorn-Lower.Elev.Inst.0.Centerline"
+			},
+            "max": {
+              "type": "path",
+              "value": "FAL.Elev.Inst.0.Top of Conservation"
+            }
+		  }
+        }
+      },
+      "cwms_paths": {
+        "temp_strings": [
+          "_S1-D1ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D5ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D10ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D15ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D20ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D30ft.Temp-Water.Inst.0.0.Best",
+		  "_S1-D35ft.Temp-Water.Inst.0.0.Best",
+		  "_S1-D40ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D60ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D65ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D70ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D80ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D85ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D100ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D125ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D145ft.Temp-Water.Inst.0.0.Best"
+        ],
+		"TinPath": ".Temp-Water.Inst.0.0.Best",
+		"QinPath2": ".Flow.Inst.0.0.Best",
+		"QinPathTot": ".Flow-In.Ave.15Minutes.3Hours.Best",
+		"SpillPath": "NULL",
+		"OutPath": ".Flow-Out.Ave.1Hour.1Hour.CBT-REV",
+		"FBWSELVPath": ".Elev-Forebay.Inst.0.0.Best",
+		"TdwnStrmPath": ".Temp-Water.Inst.0.0.Best",
+        "DwnStrmSite1": "FALO.Temp-Water.Inst.0.0.Best",
+		"WCPath": ".Elev-RuleCurve.Inst.~1Day.0.CENWP-CALC",
+		"QTargPath": "FALO.Flow.Inst.0.NMFS-BIOP-PUB",
+        "MaxTTargPath": "FALO.Temp-Water.Max.1Day.USACE_Temporary_Target",
+        "MinTTargPath": "FALO.Temp-Water.Min.1Day.USACE_Temporary_Target"
+      }
+    },
+    "LOP": {
+      "ProjAcrnm": "LOP",
+      "DwnStrmSite1Acrnm": "LPQO",
+	  "UpstrmSite1": "HCRO",
+      "UpstrmSite2": "OAKO",
+	  "UpstrmSite3": "NFWO",
+      "OutletInfo": {
+        "spillway": {
+          "display_name": "Spillway",
+          "elevation": {
+            "min": {
+              "type": "path",
+              "value": "LOP.Elev.Inst.0.Spillway Crest"
+            },
+            "max": {
+              "type": "path",
+              "value": "LOP.Elev.Inst.0.Top of Conservation"
+            }
+          }
+        },
+        "power": {
+          "display_name": "Power",
+          "elevation": {
+            "min": {
+              "type": "path",
+              "value": "LOP-Penstock.Elev.Inst.0.Centerline"
+            },
+            "max": {
+			  "type": "path",
+              "value": "LOP.Elev.Inst.0.Top of Conservation"
+             }
+          }
+        },
+        "RO": {
+          "display_name": "RO",
+          "elevation": {
+            "min": {
+              "type": "path",
+              "value": "LOP-RegulatingOutlets.Elev.Inst.0.Invert-Inlet",
+			  "centerline_offset": 6
+            },
+            "max": {
+			  "type": "path",
+              "value": "LOP.Elev.Inst.0.Top of Conservation"
+            }
+          }
+        }
+      },
+      "cwms_paths": {
+        "temp_strings": [
+          "_S1-D0,5ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D10ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D20ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D30ft.Temp-Water.Inst.0.0.Best",
+		  "_S1-D40ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D50ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D60ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D80ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D100ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D120ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D140ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D160ft.Temp-Water.Inst.0.0.Best",
+          "_S1-D180ft.Temp-Water.Inst.0.0.Best",
+		  "_S1-D200ft.Temp-Water.Inst.0.0.Best"
+        ],
+		"TinPath": ".Temp-Water.Inst.0.0.Best",
+		"QinPath2": ".Flow.Inst.0.0.Best",
+		"QinPathTot": ".Flow-In.Ave.15Minutes.3Hours.Best",
+		"OutPath": ".Flow-Out.Ave.1Hour.1Hour.CBT-REV",
+		"FBWSELVPath": ".Elev-Forebay.Inst.0.0.Best",
+		"TdwnStrmPath": ".Temp-Water.Inst.0.0.Best",
+		"TDGdwnStrmPath": ".%-Saturation-TDG.Inst.0.0.Best",
+		"GenPath": ".Flow-Gen.Ave.1Hour.1Hour.CBT-REV",
+		"SpillPath": ".Flow-Spill.Ave.1Hour.1Hour.CBT-REV",
+        "DwnStrmSite1": "LPQO.Temp-Water.Inst.0.0.Best",
+		"WCPath": ".Elev-RuleCurve.Inst.~1Day.0.CENWP-CALC",
+		"QTargPath": "DEXO.Flow.Inst.0.NMFS-BIOP-PUB",
+		"MaxTTargPath": "DEXO.Temp-Water.Inst.0.Fisheries Max Target",
+        "MinTTargPath": "DEXO.Temp-Water.Inst.0.Fisheries Min Target"
+      }
+    },
+    "DEX": {
+      "ProjAcrnm": "DEX",
+      "DwnStrmSite1Acrnm": "DEXO",
+      "DwnStrmSite2Acrnm": "JASO",
+	  "DwnStrmSite3Acrnm": "HARO",
+	  "DwnStrmSite4Acrnm": "ALBO",
+	  "DwnStrmSite5Acrnm": "SLMO",
+	  "UpstrmSite1": "LPQO",
+	  "OutletInfo": {
+        "spillway": {
+          "display_name": "Spillway",
+          "elevation": {
+            "min": {
+              "type": "path",
+              "value": "DEX.Elev.Inst.0.Spillway Crest"
+            },
+            "max": {
+              "type": "path",
+              "value": "DEX.Elev.Inst.0.Top of Conservation"
+            }
+          }
+        },
+        "power": {
+          "display_name": "Power",
+          "elevation": {
+            "min": {
+              "type": "path",
+              "value": "DEX-Penstock.Elev.Inst.0.Centerline"
+            },
+            "max": {
+			  "type": "path",
+              "value": "DEX.Elev.Inst.0.Top of Conservation"
+            }
+          }
+		}
+	  },
+      "cwms_paths": {
+		"TinPath": ".Temp-Water.Inst.0.0.Best",
+		"QinPathTot": ".Flow-In.Ave.15Minutes.3Hours.Best",
+		"OutPath": ".Flow-Out.Ave.1Hour.1Hour.CBT-REV",
+		"FBWSELVPath": ".Elev-Forebay.Inst.0.0.Best",
+		"TdwnStrmPath": ".Temp-Water.Inst.0.0.Best",
+		"TDGdwnStrmPath": ".%-Saturation-TDG.Inst.0.0.Best",
+		"GenPath": ".Flow-Gen.Ave.1Hour.1Hour.CBT-REV",
+		"SpillPath": ".Flow-Spill.Ave.1Hour.1Hour.CBT-REV",
+        "TdwnStrmPath": ".Temp-Water.Inst.0.0.Best",
+		"WCPath": ".Elev-RuleCurve.Inst.~1Day.0.CENWP-CALC",
+		"QTargPath": "DEXO.Flow.Inst.0.NMFS-BIOP-PUB",
+        "MaxTTargPath": "DEXO.Temp-Water.Inst.0.Fisheries Max Target",
+        "MinTTargPath": "DEXO.Temp-Water.Inst.0.Fisheries Min Target"
+      }
+    },
+	"DOR": {
+      "ProjAcrnm": "DOR",
+      "DwnStrmSite1Acrnm": "DORO",
+      "OutletInfo": {
+        "spillway": {
+          "display_name": "Spillway",
+          "elevation": {
+            "min": {
+              "type": "path",
+              "value": "DOR.Elev.Inst.0.Spillway Crest"
+            },
+            "max": {
+              "type": "path",
+              "value": "DOR.Elev.Inst.0.Top of Conservation"
+            }
+          }
+        },
+        "RO": {
+          "display_name": "RO",
+          "elevation": {
+            "min": {
+              "type": "path",
+              "value": "DOR-RegulatingOutlets.Elev.Inst.0.Invert-Inlet",
+			  "centerline_offset": 6
+            },
+            "max": {
+			  "type": "path",
+              "value": "DOR.Elev.Inst.0.Top of Conservation"
+            }
+          }
+        }
+      },
+      "cwms_paths": {
+		"TinPath": ".Temp-Water.Inst.0.0.Best",
+		"QinPath": ".Flow.Inst.0.0.Best",
+		"QinPathTot": ".Flow-In.Ave.15Minutes.3Hours.Best",
+		"OutPath": ".Flow-Out.Ave.1Hour.1Hour.CBT-REV",
+		"FBWSELVPath": ".Elev-Forebay.Inst.0.0.Best",
+        "DwnStrmSite1": "DORO.Temp-Water.Inst.0.0.Best"
+      }
+    },
+	"COT": {
+      "ProjAcrnm": "COT",
+      "DwnStrmSite1Acrnm": "COTO",
+      "OutletInfo": {
+        "spillway": {
+          "display_name": "Spillway",
+          "elevation": {
+            "min": {
+              "type": "path",
+              "value": "COT.Elev.Inst.0.Spillway Crest"
+            },
+            "max": {
+              "type": "path",
+              "value": "COT.Elev.Inst.0.Top of Conservation"
+            }
+          }
+        },
+        "RO": {
+          "display_name": "RO",
+          "elevation": {
+            "min": {
+              "type": "path",
+              "value": "COT-RegulatingOutlets.Elev.Inst.0.Invert-Inlet",
+			  "centerline_offset": 6
+            },
+            "max": {
+			  "type": "path",
+              "value": "COT.Elev.Inst.0.Top of Conservation"
+            }
+          }
+        }
+      },
+      "cwms_paths": {
+		"TinPath": ".Temp-Water.Inst.0.0.Best",
+		"QinPath": ".Flow.Inst.0.0.Best",
+		"QinPathTot": ".Flow-In.Ave.15Minutes.3Hours.Best",
+		"OutPath": ".Flow-Out.Ave.1Hour.1Hour.CBT-REV",
+		"FBWSELVPath": ".Elev-Forebay.Inst.0.0.Best",
+		"TdwnStrmPath": ".Temp-Water.Inst.0.0.Best",
+        "DwnStrmSite1": "COTO.Temp-Water.Inst.0.0.Best"
+      }
+    },
+	"FRN": {
+      "ProjAcrnm": "FRN",
+      "DwnStrmSite1Acrnm": "FRNO",
+      "OutletInfo": {
+        "spillway": {
+          "display_name": "Spillway",
+          "elevation": {
+            "min": {
+              "type": "path",
+              "value": "FRN.Elev.Inst.0.Spillway Crest"
+            },
+            "max": {
+              "type": "path",
+              "value": "FRN.Elev.Inst.0.Top of Conservation"
+            }
+          }
+        },
+        "RO": {
+          "display_name": "RO",
+          "elevation": {
+            "min": {
+              "type": "path",
+              "value": "FRN-RegulatingOutlets.Elev.Inst.0.Invert-Inlet",
+			  "centerline_offset": 6
+            },
+            "max": {
+			  "type": "path",
+              "value": "FRN.Elev.Inst.0.Top of Conservation"
+            }
+          }
+        }
+      },
+      "cwms_paths": {
+		"TinPath": ".Temp-Water.Inst.0.0.Best",
+		"QinPathTot": ".Flow-In.Ave.15Minutes.3Hours.Best",
+		"FBWSELVPath": ".Elev-Forebay.Inst.0.0.Best",
+		"OutPath": ".Flow-Out.Ave.1Hour.1Hour.CBT-REV",
+		"TdwnStrmPath": ".Temp-Water.Inst.0.0.Best",
+        "DwnStrmSite1": "FRNO.Temp-Water.Inst.0.0.Best"
+      }
+    }
+  }
+}
