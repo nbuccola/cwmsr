@@ -29,7 +29,7 @@ GetCWMSdata <- function(p,bdate,edate){
   allpaths <- NA
   # Get temp string data via CDA (CWMS Data Acquisition)
   if(any(grepl('temp_strings',names(cwms_paths)))){
-    tstringPaths <- paste0(Proj,cwms_paths$temp_strings)
+    tstringPaths <- na.omit(paste0(Proj,cwms_paths$temp_strings))
     tstrings <- get_cwms(tstringPaths,start_date=bdate,end_date=edate,CDApath=CDApath)
     allpaths <- c(allpaths,tstringPaths)
     # if(grepl('DET',Proj)){
@@ -71,6 +71,7 @@ GetCWMSdata <- function(p,bdate,edate){
         }
       }
     }
+    inpths <- inpths[!is.null(inpths) | !is.na(inpths)]
     inflow <- get_cwms(inpths,start_date=bdate,end_date=edate,CDApath=CDApath)
     allpaths <- c(allpaths,inpths)
   }
@@ -83,35 +84,40 @@ GetCWMSdata <- function(p,bdate,edate){
     if(length(DwnstrmTDGPaths)>0){ # TDG data
       outpths <- c(outpths,paste0(DwnstrmTDGPaths,cwms_paths$TDGdwnStrmPath))
     }
+    outpths <- outpths[!is.null(outpths) | !is.na(outpths)]
     outflow <- get_cwms(outpths,start_date=bdate,end_date=edate,CDApath=CDApath)
     allpaths <- c(allpaths,outpths)
   }
   # Get Genflow
   if(any(grepl('GenPath',names(cwms_paths)))){
-    genPaths <- paste0(Proj,cwms_paths$GenPath)
+    genPaths <- na.omit(paste0(Proj,cwms_paths$GenPath))
+    genPaths <- genPaths[!is.na(genPaths) | !is.null(genPaths)]
     genflow <- get_cwms(genPaths,start_date=bdate,end_date=edate,CDApath=CDApath)
     allpaths <- c(allpaths,genPaths)
   }
   # Get Spillflow
   if(any(grepl('SpillPath',names(cwms_paths)))){
-    spillPaths <- paste0(Proj,cwms_paths$SpillPath)
+    spillPaths <- na.omit(paste0(Proj,cwms_paths$SpillPath))
+    spillPaths <- spillPaths[!is.na(spillPaths) | !is.null(spillPaths)]
     spillflow <- get_cwms(spillPaths,start_date=bdate,end_date=edate,CDApath=CDApath)
     allpaths <- c(allpaths,spillPaths)
   }
   # Get forebay elevation
   if(any(grepl('FBWSELVPath',names(cwms_paths)))){
-    fbwselvpths <- paste0(Proj,cwms_paths$FBWSELVPath)
+    fbwselvpths <- paste0(Proj,c(cwms_paths$FBWSELVPath,cwms_paths$WCPath))
+    fbwselvpths <- fbwselvpths[!is.na(fbwselvpths) | !is.null(fbwselvpths)]
     fbwselv <- get_cwms(fbwselvpths,start_date=bdate,end_date=edate,CDApath=CDApath)
     allpaths <- c(allpaths,fbwselvpths)
   }
   # Get downstream targets
   if(any(grepl('TargPath|WCPath',names(cwms_paths)))){
     targpths <- na.omit(c(cwms_paths$MinTTargPath,cwms_paths$MaxTTargPath,
-                          cwms_paths$QTargPath,paste0(Proj,cwms_paths$WCPath)))
+                          cwms_paths$QTargPath))
+    targpths <- targpths[!is.na(targpths) | !is.null(targpths)]
     targs <- get_cwms(targpths,start_date=bdate,end_date=edate,CDApath=CDApath,timeseries=F)
     allpaths <- c(allpaths,targpths)
   }
-  allpaths <- unique(allpaths[!is.na(allpaths)])
+  allpaths <- unique(allpaths[!is.na(allpaths) | !is.null(allpaths)])
   # Merge data into a wide-format tibble
   xw <- outflow |>
     full_join(spillflow) |>

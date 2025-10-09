@@ -40,12 +40,12 @@ edate <- strptime('2025-10-06',"%Y-%m-%d",tz = 'PST8PDT')
 yrs <- unique(c(format(bdate,'%Y'),format(edate,'%Y')))
 
 # Read in JSON config file for all project data paths
-cnfg = jsonlite::fromJSON(file.path(LocalWd,"WillCWMSTempTDGConfig.json"))
+cnfg = jsonlite::fromJSON(file.path(LocalWd,"inst/WillCWMSTempTDGConfig.json"))
 pthShtcts = cnfg[['pathShortcuts']]
 cnfg = cnfg[['projects']]
 names(cnfg)
-Projects = c('CGR','FAL') #see pathShortcuts in json file
-#Projects = c('Will') #see pathShortcuts in json file
+#Projects = c('CGR','FAL') #see pathShortcuts in json file
+Projects = c('Will') #see pathShortcuts in json file
 if(any(Projects %in% names(pthShtcts))){
   whichProj <- which(names(pthShtcts) %in% Projects)
   whichProj <- which(names(cnfg) %in% pthShtcts[[whichProj]])
@@ -76,7 +76,7 @@ if(is.na(PreviousRdataDir)){
 ```{r GetCWMSopsTempData, echo=FALSE}
 
 for(i in whichProj){
-  i = 5
+  i = 1
   Proj <- cnfg[[i]][[grep('ProjAcrnm',names(cnfg[[i]]))]]
   print(Proj)
   if(!is.na(PreviousRdataDir)){
@@ -100,21 +100,23 @@ for(i in whichProj){
   calcDailys()
   
   #Re-save as Rdata File
-  save(xw,xwd,xwdSum,xAnn,Proj,cwms_paths,
+  save(xw,xwd,xwdSum,Proj,cwms_paths,
        file = file.path(LocalWd,dataFileName))
   
-  rm(xw,xwd,xAnn,xwdSum,Proji,dataFileName)
+  rm(xw,xwd,xwdSum,Proj,dataFileName)
 
 }
 
-# Iterate through Rdata files and merge into one large file (xw, xwd,xwdSum,xAnn variables)
-newDataFileName <- paste0('_HistOpsTempTDG',format(bdate,'%Y'),'-',format(edate,'%Y'),'.Rdata')
-if(!file.exists(file.path(file.path(LocalWd,HistoricPath,newDataFileName)))){
-  merge_tibbles_from_rdata(newDataFileName)
-}
-load(file.path(file.path(LocalWd,HistoricPath,newDataFileName)))
+# Left off here. Need to read-in Rdata files for each year and merge into one for analysis.
 
-MakeMultiYrPlots()
+# # Iterate through Rdata files and merge into one large file (xw, xwd,xwdSum,xAnn variables)
+# newDataFileName <- paste0('_HistOpsTempTDG',format(bdate,'%Y'),'-',format(edate,'%Y'),'.Rdata')
+# if(!file.exists(file.path(file.path(LocalWd,HistoricPath,newDataFileName)))){
+#   merge_tibbles_from_rdata(newDataFileName)
+# }
+# load(file.path(file.path(LocalWd,HistoricPath,newDataFileName)))
+# 
+# MakeMultiYrPlots()
 
 
 ```

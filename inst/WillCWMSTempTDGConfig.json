@@ -21,7 +21,7 @@
 	  "UpstrmSite1": "BCKO",
 	  "UpstrmSite2": "BRBO",
 	  "UpstrmSite3": "DEQO",
-      "DwnStrmSite1Acrnm": "DET-TailwaterRightBank-Streambed",
+    "DwnStrmSite1Acrnm": "DET-TailwaterRightBank-Streambed",
 	  "DwnStrmSite2Acrnm": "BCLO",
       "OutletInfo": {
         "spillway": {
@@ -97,6 +97,7 @@
           "_S1-D180ft.Temp-Water.Inst.0.0.Best"
         ],
 		"TinPath": ".Temp-Water.Inst.0.0.Best",
+		"TDGdwnStrmPath": ".%-Saturation-TDG.Inst.0.0.Best",
 		"QinPath": ".Flow.Inst.0.0.Best",
 		"QinPathTot": ".Flow-In.Ave.15Minutes.3Hours.Best",
 		"FBWSELVPath": ".Elev-Forebay.Inst.0.0.Best",
@@ -456,7 +457,7 @@
 		"TinPath": ".Temp-Water.Inst.0.0.Best",
 		"QinPath2": ".Flow.Inst.0.0.Best",
 		"QinPathTot": ".Flow-In.Ave.15Minutes.3Hours.Best",
-		"OutPath": ".Flow-Out.Ave.1Hour.1Hour.CBT-REV",
+		"OutPath": ".Flow-Out.Inst.0.0.Best",
 		"FBWSELVPath": ".Elev-Forebay.Inst.0.0.Best",
 		"TdwnStrmPath": ".Temp-Water.Inst.0.0.Best",
         "SpillPath": ".Flow-Spill.Ave.1Hour.1Hour.CBT-REV",
@@ -609,8 +610,7 @@
 		"TinPath": ".Temp-Water.Inst.0.0.Best",
 		"QinPath2": ".Flow.Inst.0.0.Best",
 		"QinPathTot": ".Flow-In.Ave.15Minutes.3Hours.Best",
-		"SpillPath": "NULL",
-		"OutPath": ".Flow-Out.Ave.1Hour.1Hour.CBT-REV",
+		"OutPath": ".Flow-Out.Inst.0.0.Best",
 		"FBWSELVPath": ".Elev-Forebay.Inst.0.0.Best",
 		"TdwnStrmPath": ".Temp-Water.Inst.0.0.Best",
         "DwnStrmSite1": "FALO.Temp-Water.Inst.0.0.Best",
@@ -789,7 +789,7 @@
 		"TinPath": ".Temp-Water.Inst.0.0.Best",
 		"QinPath": ".Flow.Inst.0.0.Best",
 		"QinPathTot": ".Flow-In.Ave.15Minutes.3Hours.Best",
-		"OutPath": ".Flow-Out.Ave.1Hour.1Hour.CBT-REV",
+		"OutPath": ".Flow-Out.Inst.0.0.Best",
 		"FBWSELVPath": ".Elev-Forebay.Inst.0.0.Best",
         "DwnStrmSite1": "DORO.Temp-Water.Inst.0.0.Best"
       }
@@ -830,7 +830,7 @@
 		"TinPath": ".Temp-Water.Inst.0.0.Best",
 		"QinPath": ".Flow.Inst.0.0.Best",
 		"QinPathTot": ".Flow-In.Ave.15Minutes.3Hours.Best",
-		"OutPath": ".Flow-Out.Ave.1Hour.1Hour.CBT-REV",
+		"OutPath": ".Flow-Out.Inst.0.0.Best",
 		"FBWSELVPath": ".Elev-Forebay.Inst.0.0.Best",
 		"TdwnStrmPath": ".Temp-Water.Inst.0.0.Best",
         "DwnStrmSite1": "COTO.Temp-Water.Inst.0.0.Best"
@@ -872,7 +872,7 @@
 		"TinPath": ".Temp-Water.Inst.0.0.Best",
 		"QinPathTot": ".Flow-In.Ave.15Minutes.3Hours.Best",
 		"FBWSELVPath": ".Elev-Forebay.Inst.0.0.Best",
-		"OutPath": ".Flow-Out.Ave.1Hour.1Hour.CBT-REV",
+		"OutPath": ".Flow-Out.Inst.0.0.Best",
 		"TdwnStrmPath": ".Temp-Water.Inst.0.0.Best",
         "DwnStrmSite1": "FRNO.Temp-Water.Inst.0.0.Best"
       }
