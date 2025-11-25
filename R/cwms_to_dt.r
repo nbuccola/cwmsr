@@ -11,12 +11,22 @@
 #' @keywords CWMS Corps USACE data retrieval
 #' @examples
 #' @export
-#' @importFrom jsonlite fromJSON
+#' @importFrom jsonlite fromJSON httr
 cwms_to_dt<-function(path, start_date, end_date, timezone = timezone,
                      timeseries,CDApath = CDApath,linux=F){
   url = get_url(path, start_date, end_date, timezone = timezone,timeseries=timeseries,CDApath = CDApath)
   print(paste(paste('`',path,sep=''),'`',sep=''))
   print(url)
+  # Test URL
+  # Send a GET request
+  response <- httr::GET(url)
+  # Check the status code
+  status_code <- httr::status_code(response)
+  if (status_code == 404) {
+    print("Returned a 404 Not Found error.")
+    dt = data.frame(Date = as.POSIXct(c(start_date,end_date),tz =timezone),value = NA)
+    return(dt)
+  }
   if(linux){
     # For Linux with json
     download.file(url, destfile = "Station_dataFile.json", method = "libcurl",
