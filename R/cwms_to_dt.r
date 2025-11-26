@@ -17,6 +17,19 @@ cwms_to_dt<-function(path, start_date, end_date, timezone = timezone,
   url = get_url(path, start_date, end_date, timezone = timezone,timeseries=timeseries,CDApath = CDApath)
   print(paste(paste('`',path,sep=''),'`',sep=''))
   print(url)
+  # Test URL
+  # Send a GET request
+  response <- GET(url)
+  # Check the status code
+  status_code <- status_code(response)
+  if (status_code == 404) {
+    print("Returned a 404 Not Found error.")
+    dt = data.frame(Date = as.POSIXct(c(start_date,end_date),tz =timezone),value = NA)
+    return(dt)
+  } else {
+    print(paste("Returned status code:", status_code))
+  }
+
   if(linux){
     # For Linux with json
     download.file(url, destfile = "Station_dataFile.json", method = "libcurl",
