@@ -19,6 +19,7 @@ rm(list = ls())
 #install.packages(c('reshape2','foreach','lubridate','ggplot2','plyr','RColorBrewer','scales','data.table','magrittr',
 # 'tidyverse','plotly','akima','plotly'), repos='http://cran.us.r-project.org')
 #library(devtools)
+#install.packages('cwmsr', source = TRUE, lib.loc = "C:/Repositories/cwmsr") #, repos=NULL
 #install_github("nbuccola/cwmsr")
 #install.packages('cwmsr')
 library(cwmsr)
@@ -28,95 +29,160 @@ library(ggplot2)
 library(tidyr)
 #install.packages('tidyverse')
 library(tidyverse)
-#library(purrr)
-#library(readxl)
+library(purrr)
+library(readxl)
 #library(w2r)
 LocalWd <- 'C:/Repositories/cwmsr'
 WriteDir <- 'C:/Users/g2echnb9/OneDrive - US Army Corps of Engineers/Documents/WOOT/Analysis'
 CDApath <- 'https://wm.nws.ds.usace.army.mil:8243/nwdp-data/'
+CDApath <- 'https://wm.nww.ds.usace.army.mil:8243/nwdp-data/'
 # Setup input variables
-bdate <- strptime('2025-08-01',"%Y-%m-%d",tz = 'PST8PDT')
-edate <- strptime('2025-10-06',"%Y-%m-%d",tz = 'PST8PDT')
-yrs <- unique(c(format(bdate,'%Y'),format(edate,'%Y')))
+bdate <- strptime('2000-01-01',"%Y-%m-%d",tz = 'PST8PDT')
+edate <- strptime('2025-12-18',"%Y-%m-%d",tz = 'PST8PDT')
+yrs <- gsub(', ','',toString(unique(c(format(bdate,'%Y'),format(edate,'%Y')))))
 
 # Read in JSON config file for all project data paths
-cnfg = jsonlite::fromJSON(file.path(LocalWd,"inst/WillCWMSTempTDGConfig.json"))
-pthShtcts = cnfg[['pathShortcuts']]
+cnfg = jsonlite::fromJSON(file.path(LocalWd,"inst","WillCWMSTempTDGConfig.json"))
 cnfg = cnfg[['projects']]
 names(cnfg)
-#Projects = c('CGR','FAL') #see pathShortcuts in json file
-Projects = c('Will') #see pathShortcuts in json file
-if(any(Projects %in% names(pthShtcts))){
-  whichProj <- which(names(pthShtcts) %in% Projects)
-  whichProj <- which(names(cnfg) %in% pthShtcts[[whichProj]])
+
+Projects = 'All' #c('CGR','FAL')
+if(Projects[1] ==  'All'){
+  whichProj <- 1:length(cnfg)
 }else{
   whichProj <- which(names(cnfg) %in% Projects)
 }
 
 PreviousRdataDir = NA
+PreviousRdataDir = file.path(WriteDir,'Wil_All_Ops20002025')
 
 if(is.na(PreviousRdataDir)){
   # Create Folder For New Data
-  RdataDir <- file.path(WriteDir,paste0(gsub(',| ','',toString(Projects)),'_OpsTempTDG',yrs))
+  RdataDir <- file.path(WriteDir,paste0('Wil_',gsub(',| ','',toString(Projects)),'_Ops',yrs))
   dir.create(RdataDir)
 }else{
   RdataDir <- PreviousRdataDir
+  if(!dir.exists(RdataDir)){
+    dir.create(RdataDir)
+  }
 }
+fls <- list.files(RdataDir,pattern = '.Rdata')
+RawFls <- fls[grepl('Raw',fls)]
+CleanFls <- fls[grepl('Clean',fls)]
     
-# Example using a common colorblind-friendly palette
-# cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
-# clrs<- cbPalette[2:4]
-# names(clrs) <- c("2023","2024","2025")
 
+for(i in whichProj){
+  #i = 1
+  Proj <- cnfg[[i]][[grep('ProjAcrnm',names(cnfg[[i]]))]]
+  if(!is.na(PreviousRdataDir)){
+    #dataFileName <- paste0(Proj,'_OpsRaw',yrs,format(edate,'-%m-%d'),'.Rdata')
+    OldRdataDirProj <- file.path(RdataDir,fls[grepl(paste0(Proj,'_'),RawFls)])
+    cnfg[[i]][['OldRdataDirProj']] <- cnfg[[i]][['RdataDirProj']] <- OldRdataDirProj
+    cnfg[[i]][['dataFileName']] <- rev(strsplit(OldRdataDirProj,'\\/')[[1]])[1]
+    edate <- "Update"
+  }else{
+    cnfg[[i]][['dataFileName']] <- paste0(Proj,'_OpsRaw',yrs,'.Rdata')
+    cnfg[[i]][['RdataDirProj']] <- file.path(RdataDir,dataFileName)
+  }
+  cnfg[[i]][['edate']] <- edate
+}
 
 ```
 
 ## Get data for each project
 
-```{r GetCWMSopsTempData, echo=FALSE}
+```{r GetCWMSopsData, echo=FALSE}
 
 for(i in whichProj){
-  i = 1
+  #i = 1
+  Proj <- cnfg[[i]][[grep('ProjAcrnm',names(cnfg[[i]]))]]
+  GetCWMSdata(p = cnfg[[i]],bdate=bdate,edate = cnfg[[i]][['edate']])
+}
+
+```
+
+
+```{r CleanAndProcessRawData}
+
+for(i in whichProj){
   Proj <- cnfg[[i]][[grep('ProjAcrnm',names(cnfg[[i]]))]]
   print(Proj)
-  if(!is.na(PreviousRdataDir)){
-    fls <- list.files(RdataDir,pattern = '.Rdata')
-    RdataDirProj <- file.path(RdataDir,fls[grepl(paste0(Proj,'_'),fls)])
-  }else{
-    print(paste("Getting",Proj,"Data from",bdate,'to',edate))
-    dataFileName <- paste0(Proj,'_OpsTempTDG',yrs,'.Rdata')
-    RdataDirProj <- file.path(RdataDir,dataFileName)
-    source(file.path(LocalWd,'R','get_cwms_utilities.r'))
-    GetCWMSdata(p = cnfg[[i]],bdate=bdate,edate = edate)
-  }
-  load(RdataDirProj)
-
+  # Load project data
+  load(file.path(RdataDir,cnfg[[i]][['dataFileName']]))
+  
+  # Interpolate to hourly data and remove missing columns
+  InterpCols(cnfg[[i]][['RdataDirProj']])
+  
   # Calculate weighted average of inflow temperature
   if(any(grepl('QinPath',names(cwms_paths))) & !grepl('LOP',Proj)){
     CalcTin()
   }
-  
   # Remove Outliers, Calculate Dailys, Monthly, Annual Summaries, Plot output
+  # Left off here: see line 345
+  source(file.path(LocalWd,'R','get_cwms_utilities.r'))
   calcDailys()
   
-  #Re-save as Rdata File
-  save(xw,xwd,xwdSum,Proj,cwms_paths,
-       file = file.path(LocalWd,dataFileName))
+  # Calculate days of exceedance for Temperature variables
+  # Left off here, need to work on calculating over months and how to modify the xMon variable
+  calcExceed(DataType = 'Temp-Water',ExcVals = c(16,18))
   
-  rm(xw,xwd,xwdSum,Proj,dataFileName)
-
+  
+  #Save New Processed Data as Rdata File
+  save(Proj,OutletI,xw,xwd,xwdSum,xAnn,cwms_paths,
+       file = file.path(RdataDir,gsub('_OpsHrlyClean','_OpsProcessed',dataFileName)))
+  
+  rm(xw,xwd,xAnn,xwdSum,Proj,cwms_paths,dataFileName)
 }
 
-# Left off here. Need to read-in Rdata files for each year and merge into one for analysis.
+```
 
-# # Iterate through Rdata files and merge into one large file (xw, xwd,xwdSum,xAnn variables)
-# newDataFileName <- paste0('_HistOpsTempTDG',format(bdate,'%Y'),'-',format(edate,'%Y'),'.Rdata')
-# if(!file.exists(file.path(file.path(LocalWd,HistoricPath,newDataFileName)))){
-#   merge_tibbles_from_rdata(newDataFileName)
-# }
-# load(file.path(file.path(LocalWd,HistoricPath,newDataFileName)))
-# 
-# MakeMultiYrPlots()
+
+Get Operator Log Book data
+Prior to next step, copy log books from:
+1) DET-BCL:
+\\nwd\nwp-ETDS\Engineering_Division\CENWP-EC-H\CENWP-EC-HR\RES_REG\WILLAMETTE\PROJECTS\Detroit\Log_Sheets
+2) LOP:
+3) FOS: 
+
+
+```{r LoadGateOpeningData}
+NewDETBCLGateFile = 'DETBCL_logbookScraped2014-2025.Rdata'
+gatePath = file.path(WriteDir,'GateOpenings','DETBCL')
+
+RdataFls <- list.files(RdataDir,pattern = '.Rdata',full.names = T)
+
+getDETBCLScrapedOpsLogBooks(
+  gatePath=gatePath,
+  previousScrapeFile = NewDETBCLGateFile)
+
+# Merge Logbook gate opening data with DET-BCL ops and TDG:
+  # Left off here!!!
+  # Find the DET and BCL data in the data that was saved from the get_cwms function above
+MergeGateOpsWflowWQ(
+  DETBCLGateOpsFileName = file.path(gatePath,NewDETBCLGateFile),
+  DETBCLcwmsDataName = file.path(RdataDir,))
+
+```
+
+
+```{r MergeOldDataWithNew}
+
+# Left off here! Need to test the merging of old and new Rdata files
+
+# Iterate through Rdata files and merge into one large file (xw, xwd,xwdSum,xAnn variables)
+oldDataFileName <- 'DET_HistoricOpsTemp2000-2025.Rdata'
+newDataFileName <- paste0('_HistOpsWQ',format(bdate,'%Y'),'-',format(edate,'%Y'),'.Rdata')
+if(!file.exists(file.path(RdataDir,newDataFileName))){
+    merge_tibbles_from_rdata(oldDataFileName,newDataFileName)
+  }
+load(file.path(RdataDir,newDataFileName))
+
+# Example using a common colorblind-friendly palette
+# cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+# clrs<- cbPalette[2:4]
+# names(clrs) <- c("2023","2024","2025")
+
+MakeMultiYrPlots()
 
 
 ```

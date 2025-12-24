@@ -7,22 +7,18 @@
   "global": {
     "spawndays": [244,263,274]
   },
-  "pathShortcuts":{
-    "Will": ["DET","BCL","GPR","FOS","CGR","BLU","HCR","FAL","LOP","DEX","DOR","COT","FRN"],
-    "NS": ["DET","BCL"],
-    "SS": ["GPR","FOS"],
-    "MK": ["CGR","BLU"],
-    "MF": ["HCR","FAL","LOP","DEX"],
-    "CFLT": ["DOR","COT","FRN"]
-  },
   "projects": {
     "DET": {
       "ProjAcrnm": "DET",
 	  "UpstrmSite1": "BCKO",
 	  "UpstrmSite2": "BRBO",
 	  "UpstrmSite3": "DEQO",
-    "DwnStrmSite1Acrnm": "DET-TailwaterRightBank-Streambed",
+	  "UpStrmTurbSite1":  "BRBO",
+	  "UpStrmTurbSite2":  "BCKO",
+      "DwnStrmSite1Acrnm": "DET-TailwaterRightBank",
 	  "DwnStrmSite2Acrnm": "BCLO",
+      "DwnStrmTDGSite1Acrnm": "DET-TailwaterRightBank",
+	  "DwnStrmTDGSite2Acrnm": "BCLO",
       "OutletInfo": {
         "spillway": {
           "display_name": "Spillway",
@@ -44,11 +40,11 @@
           "elevation": {
             "min": {
               "type": "path",
-              "value": "DET-Penstock.Elev.Inst.0.Centerline"
+              "value": "DET-Penstock.Elev.Inst.0.Centerline" 
             },
             "max": {
               "type": "path",
-              "value": "DET.Elev.Inst.0.Top of Conservation"
+              "value": "DET.Elev.Inst.0.Top of Conservation" 
             }
           }
         },
@@ -96,23 +92,37 @@
           "_S1-D160ft.Temp-Water.Inst.0.0.Best",
           "_S1-D180ft.Temp-Water.Inst.0.0.Best"
         ],
+		"GDACS_Gates": [
+			"DET-RG1P.Opening.Inst.0.0.MIXED-REV",
+			"DET-RG2E.Opening.Inst.0.0.MIXED-REV",
+			"DET-SB1.Opening.Inst.0.0.MIXED-REV",
+			"DET-SB2.Opening.Inst.0.0.MIXED-REV",
+			"DET-SB3.Opening.Inst.0.0.MIXED-REV",
+			"DET-SB4.Opening.Inst.0.0.MIXED-REV",
+			"DET-SB5.Opening.Inst.0.0.MIXED-REV",
+			"DET-SB6.Opening.Inst.0.0.MIXED-REV"
+		],
 		"TinPath": ".Temp-Water.Inst.0.0.Best",
-		"TDGdwnStrmPath": ".%-Saturation-TDG.Inst.0.0.Best",
+		"TurbPath": ".TurbF.Inst.0.0.Best",
 		"QinPath": ".Flow.Inst.0.0.Best",
 		"QinPathTot": ".Flow-In.Ave.15Minutes.3Hours.Best",
 		"FBWSELVPath": ".Elev-Forebay.Inst.0.0.Best",
-		"OutPath": ".Flow-Out.Ave.1Hour.1Hour.CBT-REV",
+		"TdwnStrmPath": ".Temp-Water.Inst.0.0.Best",
+		"TDGdwnStrmPath": ".%-Saturation-TDG.Inst.0.0.Best",
+		"OutPath": ".Flow-Out.Inst.0.0.Best",
 		"GenPath": ".Flow-Gen.Ave.1Hour.1Hour.CBT-REV",
 		"SpillPath": ".Flow-Spill.Ave.1Hour.1Hour.CBT-REV"
       }
     },
 	"BCL": {
       "ProjAcrnm": "BCL",
+	  "UpstrmSite1": "DET-TailwaterRightBank",
       "DwnStrmSite1Acrnm": "BCLO",
       "DwnStrmTDGSite1Acrnm": "BCLO",
 	  "DwnStrmTDGSite2Acrnm": "BCL-Fishtrap-Streambed",
 	  "DwnStrmTDGSite3Acrnm": "BCL-Fishtrap",
 	  "DwnStrmTDGSite4Acrnm": "MNTO-USACEPipe",
+	  "DwnStrmTurbSite1":  "BCLO",
       "OutletInfo": {
         "spillway": {
           "display_name": "Spillway",
@@ -134,7 +144,7 @@
           "elevation": {
             "min": {
               "type": "path",
-              "value": "BCL-Penstock.Elev.Inst.0.Invert"
+              "value": "BCL-Penstock.Elev.Inst.0.Invert" 
             },
             "max": {
               "type": "path",
@@ -157,13 +167,20 @@
           "_S1-D70ft.Temp-Water.Inst.0.0.Best",
           "_S1-D80ft.Temp-Water.Inst.0.0.Best"
         ],
+		"GDACS_Gates": [
+			"BCL-SB1.Opening.Inst.0.0.MIXED-REV",
+			"BCL-SB2.Opening.Inst.0.0.MIXED-REV",
+			"BCL-SB3.Opening.Inst.0.0.MIXED-REV"
+		],
 		"QinPathTot": ".Flow-In.Ave.15Minutes.3Hours.Best",
+		"TinPath": ".Temp-Water.Inst.0.0.Best",
 		"GenPath": ".Flow-Gen.Ave.1Hour.1Hour.CBT-REV",
 		"SpillPath": ".Flow-Spill.Ave.1Hour.1Hour.CBT-REV",
 		"FBWSELVPath": ".Elev-Forebay.Inst.0.0.Best",
 		"TdwnStrmPath": ".Temp-Water.Inst.0.0.Best",
 		"TDGdwnStrmPath": ".%-Saturation-TDG.Inst.0.0.Best",
-		"OutPath": ".Flow-Out.Ave.1Hour.1Hour.CBT-REV",
+		"TurbPath": ".TurbF.Inst.0.0.Best",
+		"OutPath": ".Flow-Out.Inst.0.0.Best",
 		"WCPath": ".Elev-RuleCurve.Inst.~1Day.0.CENWP-CALC",
 		"QTargPath": "BCLO.Flow.Inst.0.NMFS-BIOP-PUB",
 		"MaxTTargPath": "BCLO.Temp-Water.Max.1Day.COORD_Fisheries_Target",
@@ -174,8 +191,11 @@
       "ProjAcrnm": "GPR",
       "DwnStrmSite1Acrnm": "GPRO",
 	  "DwnStrmSite2Acrnm": "SSFO",
+	  "DwnStrmTurbSite1":  "GPRO",
    	  "UpstrmSite1": "QCCO",
 	  "UpstrmSite2": "MSCO",
+	  "UpStrmTurbSite1":  "QCCO",
+	  "UpStrmTurbSite1":  "MSCO",
       "OutletInfo": {
         "spillway": {
           "display_name": "Spillway",
@@ -247,19 +267,24 @@
         "_S1-E1000ft.Temp-Water.Inst.0.0.Best",
         "_S1-E1010ft.Temp-Water.Inst.0.0.Best"
         ],
+		"GDACS_Gates": [
+			"GPR-RO1.Opening.Inst.0.0.MIXED-REV",
+			"GPR-RO2.Opening.Inst.0.0.MIXED-REV"
+		],
 		"FBWSELVPath": ".Elev-Forebay.Inst.0.0.Best",
+		"TinPath": ".Temp-Water.Inst.0.0.Best",
+		"TurbPath": ".TurbF.Inst.0.0.Best",
 		"QinPath": ".Flow.Inst.0.0.Best",
 		"QinPathTot": ".Flow-In.Ave.1Hour.3Hours.Best",
 		"SpillPath": ".Flow-Spill.Ave.1Hour.1Hour.CBT-REV",
         "GenPath": ".Flow-Gen.Ave.1Hour.1Hour.CBT-REV",
-		"OutPath": ".Flow-Out.Ave.1Hour.1Hour.CBT-REV",
+		"OutPath": ".Flow-Out.Inst.0.0.Best",
         "DwnStrmSite1": "GPRO.Temp-Water.Inst.0.0.Best",
         "DwnStrmSite2": "SSFO.Temp-Water.Inst.0.0.Best",
 		"WCPath": ".Elev-RuleCurve.Inst.~1Day.0.CENWP-CALC",
 		"QTargPath": "SSFO.Flow.Inst.0.NMFS-BIOP-PUB",
         "MaxTTargPath": "SSFO.Temp-Water.Max.1Day.USACE_Temporary_Target",
         "MinTTargPath": "SSFO.Temp-Water.Min.1Day.USACE_Temporary_Target",
-		"TinPath": ".Temp-Water.Inst.0.0.Best",
 		"TdwnStrmPath": ".Temp-Water.Inst.0.0.Best",
 		"TDGdwnStrmPath": ".%-Saturation-TDG.Inst.0.0.Best"
       }
@@ -268,9 +293,11 @@
       "ProjAcrnm": "FOS",
       "DwnStrmSite1Acrnm": "SSFO",
 	  "DwnStrmSite2Acrnm": "JFFO",
+	  "DwnStrmTurbSite": "WTLO",
 	  "DwnStrmTDGSite1Acrnm": "SSFO",
 	  "UpstrmSite1": "GPRO",
 	  "UpstrmSite2": "SSCO",
+	  "UpstrmTurbSite": "FOS_S1",
 	  "OutletInfo": {
         "spillway": {
           "display_name": "Spillway",
@@ -312,11 +339,18 @@
           "_S1-D60ft.Temp-Water.Inst.0.0.Best",
           "_S1-D70ft.Temp-Water.Inst.0.0.Best",
           "_S1-D80ft.Temp-Water.Inst.0.0.Best"
-        ],
+        ],		
+		"GDACS_Gates": [
+			"FOS-SB1.Opening.Inst.0.0.MIXED-REV",
+			"FOS-SB2.Opening.Inst.0.0.MIXED-REV",
+			"FOS-SB3.Opening.Inst.0.0.MIXED-REV",
+			"FOS-SB4.Opening.Inst.0.0.MIXED-REV"
+		],
 		"TinPath": ".Temp-Water.Inst.0.0.Best",
+		"TurbPath": ".TurbF.Inst.0.0.Best",
 		"QinPath2": ".Flow.Inst.0.0.Best",
 		"QinPathTot": ".Flow-In.Ave.15Minutes.6Hours.Best",
-		"OutPath": ".Flow-Out.Ave.1Hour.1Hour.CBT-REV",
+		"OutPath": ".Flow-Out.Inst.0.0.Best",
 		"GenPath": ".Flow-Gen.Ave.1Hour.1Hour.CBT-REV",
         "SpillPath": ".Flow-Spill.Ave.1Hour.1Hour.CBT-REV",
 		"FBWSELVPath": ".Elev-Forebay.Inst.0.0.Best",
@@ -332,6 +366,7 @@
       "ProjAcrnm": "CGR",
       "DwnStrmSite1Acrnm": "CGRO",
       "DwnStrmSite2Acrnm": "VIDO",
+	  "DwnStrmTurbSite1": "CGRO",
 	  "DwnStrmTDGSite1Acrnm": "CGR-RegulatingOutlets-Channel-StmBed",
 	  "DwnStrmTDGSite2Acrnm": "CGRO",
       "UpstrmSite1": "SFCO",
@@ -404,10 +439,23 @@
 			"_S1-E1524ft.Temp-Water.Inst.0.0.Best",
 			"_S1-E1504ft.Temp-Water.Inst.0.0.Best"
 			],
+		"GDACS_Temps": [
+			"CGR-PS01.Temp-Water.Inst.0.0.GDACS-RAW",
+			"CGR-PS02.Temp-Water.Inst.0.0.GDACS-RAW"
+			],
+		"GDACS_Gates": [
+			"CGR-DT-EGate1.Opening.Inst.0.0.GDACS-RAW",
+			"CGR-DT-Gate1.Opening.Inst.0.0.GDACS-RAW",
+			"CGR-DT-EGate2.Opening.Inst.0.0.GDACS-RAW",
+			"CGR-DT-Gate2.Opening.Inst.0.0.GDACS-RAW",
+			"CGR-RO1.Opening.Inst.0.0.GDACS-RAW",
+			"CGR-RO2.Opening.Inst.0.0.GDACS-RAW"
+		],
 		"TinPath": ".Temp-Water.Inst.0.0.Best",
+		"TurbPath": ".TurbF.Inst.0.0.Best",
 		"QinPath": ".Flow.Inst.0.0.Best",
 		"QinPathTot": ".Flow-In.Ave.15Minutes.3Hours.Best",
-		"OutPath": ".Flow-Out.Ave.1Hour.1Hour.CBT-REV",
+		"OutPath": ".Flow-Out.Inst.0.0.Best",
 		"GenPath": ".Flow-Gen.Ave.1Hour.1Hour.CBT-REV",
 		"SpillPath": ".Flow-Spill.Ave.1Hour.1Hour.CBT-REV",
 		"FBWSELVPath": ".Elev-Forebay.Inst.0.0.Best",
@@ -527,10 +575,14 @@
 			"_S1-D10ft.Temp-Water.Inst.0.0.Best",
 			"_S1-D0,5ft.Temp-Water.Inst.0.0.Best"
       	],
+		"GDACS_Gates": [
+			"HCR-RO1.Opening.Inst.0.0.GDACS-RAW",
+			"HCR-RO2.Opening.Inst.0.0.GDACS-RAW"
+			],
 		"TinPath": ".Temp-Water.Inst.0.0.Best",
 		"QinPath2": ".Flow.Inst.0.0.Best",
 		"QinPathTot": ".Flow-In.Ave.15Minutes.3Hours.Best",
-		"OutPath": ".Flow-Out.Ave.1Hour.1Hour.CBT-REV",
+		"OutPath": ".Flow-Out.Inst.0.0.Best",
 		"GenPath": ".Flow-Gen.Ave.1Hour.1Hour.CBT-REV",
 		"SpillPath": ".Flow-Spill.Ave.1Hour.1Hour.CBT-REV",
 		"FBWSELVPath": ".Elev-Forebay.Inst.0.0.Best",
@@ -545,6 +597,7 @@
     "FAL": {
       "ProjAcrnm": "FAL",
       "DwnStrmSite1Acrnm": "FALO",
+	  "DwnStrmTurbSite1": "FALO",
 	  "UpstrmSite1": "FNFO",
       "UpstrmSite2": "WCLO",
 	  "OutletInfo": {
@@ -607,13 +660,30 @@
           "_S1-D125ft.Temp-Water.Inst.0.0.Best",
           "_S1-D145ft.Temp-Water.Inst.0.0.Best"
         ],
-		"TinPath": ".Temp-Water.Inst.0.0.Best",
-		"QinPath2": ".Flow.Inst.0.0.Best",
+		"GDACS_Temps": [
+			"FAL-AdultFishFacility-ApproachPool.Temp-Water.Inst.0.0.GDACS-RAW",				"FAL-AdultFishFacility-HeadboxOutlet.Temp-Water.Inst.0.0.GDACS-RAW","FAL-AdultFishFacility-ValveBoxE720ft.Temp-Water.Inst.0.0.GDACS-RAW","FAL-AdultFishFacility-ValveBoxE765ft.Temp-Water.Inst.0.0.GDACS-RAW"
+		],
+		"GDACS_Gates": [
+			"FAL-Fishhorn-E720ft-18in.Code-Open.Inst.0.0.GDACS-RAW",
+			"FAL-Fishhorn-E720ft-24in.Code-Open.Inst.0.0.GDACS-RAW",
+			"FAL-Fishhorn-E720ft-30in.Code-Open.Inst.0.0.GDACS-RAW",
+			"FAL-Fishhorn-E765ft-18in.Code-Open.Inst.0.0.GDACS-RAW",
+			"FAL-Fishhorn-E765ft-24in.Code-Open.Inst.0.0.GDACS-RAW",
+			"FAL-Fishhorn-E765ft-30in.Code-Open.Inst.0.0.GDACS-RAW",
+			"FAL-Fishhorn-E800ft-18in.Code-Open.Inst.0.0.GDACS-RAW",
+			"FAL-Fishhorn-E800ft-24in.Code-Open.Inst.0.0.GDACS-RAW",
+			"FAL-Fishhorn-E800ft-30in.Code-Open.Inst.0.0.GDACS-RAW",
+			"FAL-RO1.Opening.Inst.0.0.GDACS-RAW",
+			"FAL-RO2.Opening.Inst.0.0.GDACS-RAW"
+		],
+		"TurbPath": ".TurbF.Inst.0.0.Best",
+		"QinPath": ".Flow.Inst.0.0.Best",
 		"QinPathTot": ".Flow-In.Ave.15Minutes.3Hours.Best",
+		"SpillPath": "NULL",
 		"OutPath": ".Flow-Out.Inst.0.0.Best",
 		"FBWSELVPath": ".Elev-Forebay.Inst.0.0.Best",
 		"TdwnStrmPath": ".Temp-Water.Inst.0.0.Best",
-        "DwnStrmSite1": "FALO.Temp-Water.Inst.0.0.Best",
+		"DwnStrmSite1": "FALO.Temp-Water.Inst.0.0.Best",
 		"WCPath": ".Elev-RuleCurve.Inst.~1Day.0.CENWP-CALC",
 		"QTargPath": "FALO.Flow.Inst.0.NMFS-BIOP-PUB",
         "MaxTTargPath": "FALO.Temp-Water.Max.1Day.USACE_Temporary_Target",
@@ -623,6 +693,7 @@
     "LOP": {
       "ProjAcrnm": "LOP",
       "DwnStrmSite1Acrnm": "LPQO",
+	  "DwnStrmTurbSite1": "LPQO",
 	  "UpstrmSite1": "HCRO",
       "UpstrmSite2": "OAKO",
 	  "UpstrmSite3": "NFWO",
@@ -686,9 +757,10 @@
 		  "_S1-D200ft.Temp-Water.Inst.0.0.Best"
         ],
 		"TinPath": ".Temp-Water.Inst.0.0.Best",
+		"TurbPath": ".TurbF.Inst.0.0.Best",
 		"QinPath2": ".Flow.Inst.0.0.Best",
 		"QinPathTot": ".Flow-In.Ave.15Minutes.3Hours.Best",
-		"OutPath": ".Flow-Out.Ave.1Hour.1Hour.CBT-REV",
+		"OutPath": ".Flow-Out.Inst.0.0.Best",
 		"FBWSELVPath": ".Elev-Forebay.Inst.0.0.Best",
 		"TdwnStrmPath": ".Temp-Water.Inst.0.0.Best",
 		"TDGdwnStrmPath": ".%-Saturation-TDG.Inst.0.0.Best",
@@ -707,7 +779,9 @@
       "DwnStrmSite2Acrnm": "JASO",
 	  "DwnStrmSite3Acrnm": "HARO",
 	  "DwnStrmSite4Acrnm": "ALBO",
-	  "DwnStrmSite5Acrnm": "SLMO",
+	  "DwnStrmSite5Acrnm": "SLMO",    
+	  "DwnStrmTurbSite1": "DEXO",
+	  "DwnStrmTurbSite2": "JASO",
 	  "UpstrmSite1": "LPQO",
 	  "OutletInfo": {
         "spillway": {
@@ -739,8 +813,9 @@
 	  },
       "cwms_paths": {
 		"TinPath": ".Temp-Water.Inst.0.0.Best",
+		"TurbPath": ".TurbF.Inst.0.0.Best",
 		"QinPathTot": ".Flow-In.Ave.15Minutes.3Hours.Best",
-		"OutPath": ".Flow-Out.Ave.1Hour.1Hour.CBT-REV",
+		"OutPath": ".Flow-Out.Inst.0.0.Best",
 		"FBWSELVPath": ".Elev-Forebay.Inst.0.0.Best",
 		"TdwnStrmPath": ".Temp-Water.Inst.0.0.Best",
 		"TDGdwnStrmPath": ".%-Saturation-TDG.Inst.0.0.Best",
@@ -752,9 +827,10 @@
         "MaxTTargPath": "DEXO.Temp-Water.Inst.0.Fisheries Max Target",
         "MinTTargPath": "DEXO.Temp-Water.Inst.0.Fisheries Min Target"
       }
-    },
+    },	
 	"DOR": {
       "ProjAcrnm": "DOR",
+	  "UpstrmSite1": "DRRO",
       "DwnStrmSite1Acrnm": "DORO",
       "OutletInfo": {
         "spillway": {
@@ -786,16 +862,25 @@
         }
       },
       "cwms_paths": {
-		"TinPath": ".Temp-Water.Inst.0.0.Best",
+		"GDACS_Gates": [
+			"DOR-RO1.Opening.Inst.0.0.GDACS-RAW",
+			"DOR-RO2.Opening.Inst.0.0.GDACS-RAW",
+			"DOR-RO3.Opening.Inst.0.0.GDACS-RAW",
+			"DOR-RO4.Opening.Inst.0.0.GDACS-RAW",
+			"DOR-RO5.Opening.Inst.0.0.GDACS-RAW"
+		],
+		"TinPath": ".Temp-Water.Inst.0.0.MIXED-REV",
 		"QinPath": ".Flow.Inst.0.0.Best",
 		"QinPathTot": ".Flow-In.Ave.15Minutes.3Hours.Best",
 		"OutPath": ".Flow-Out.Inst.0.0.Best",
 		"FBWSELVPath": ".Elev-Forebay.Inst.0.0.Best",
+		"WCPath": ".Elev-RuleCurve.Inst.~1Day.0.CENWP-CALC",
         "DwnStrmSite1": "DORO.Temp-Water.Inst.0.0.Best"
       }
     },
 	"COT": {
       "ProjAcrnm": "COT",
+	  "UpstrmSite1": "LONO",
       "DwnStrmSite1Acrnm": "COTO",
       "OutletInfo": {
         "spillway": {
@@ -827,17 +912,24 @@
         }
       },
       "cwms_paths": {
+		"GDACS_Gates": [
+			"COT-RO1.Opening.Inst.0.0.GDACS-RAW",
+			"COT-RO2.Opening.Inst.0.0.GDACS-RAW",
+			"COT-RO3.Opening.Inst.0.0.GDACS-RAW"
+		],
 		"TinPath": ".Temp-Water.Inst.0.0.Best",
 		"QinPath": ".Flow.Inst.0.0.Best",
 		"QinPathTot": ".Flow-In.Ave.15Minutes.3Hours.Best",
 		"OutPath": ".Flow-Out.Inst.0.0.Best",
 		"FBWSELVPath": ".Elev-Forebay.Inst.0.0.Best",
+		"WCPath": ".Elev-RuleCurve.Inst.~1Day.0.CENWP-CALC",
 		"TdwnStrmPath": ".Temp-Water.Inst.0.0.Best",
         "DwnStrmSite1": "COTO.Temp-Water.Inst.0.0.Best"
       }
     },
 	"FRN": {
       "ProjAcrnm": "FRN",
+      "UpstrmSite1": "NOTO",
       "DwnStrmSite1Acrnm": "FRNO",
       "OutletInfo": {
         "spillway": {
@@ -869,9 +961,17 @@
         }
       },
       "cwms_paths": {
-		"TinPath": ".Temp-Water.Inst.0.0.Best",
+		"GDACS_Gates": [
+			"FRN-RO1.Opening.Inst.0.0.GDACS-RAW",
+			"FRN-RO2.Opening.Inst.0.0.GDACS-RAW",
+			"FRN-RO3.Opening.Inst.0.0.GDACS-RAW",
+			"FRN-RO4.Opening.Inst.0.0.GDACS-RAW",
+			"FRN-SluiceGate.Opening.Inst.0.0.GDACS-RAW"
+		],
+		"TinPath": ".Temp-Water.Inst.0.0.MIXED-REV",
 		"QinPathTot": ".Flow-In.Ave.15Minutes.3Hours.Best",
 		"FBWSELVPath": ".Elev-Forebay.Inst.0.0.Best",
+		"WCPath": ".Elev-RuleCurve.Inst.~1Day.0.CENWP-CALC",
 		"OutPath": ".Flow-Out.Inst.0.0.Best",
 		"TdwnStrmPath": ".Temp-Water.Inst.0.0.Best",
         "DwnStrmSite1": "FRNO.Temp-Water.Inst.0.0.Best"
