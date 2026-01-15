@@ -1,6 +1,13 @@
-
-# Get Operator Logbook Data
-# To-Do: Ask Amory for other Rdata files
+#' Get DET Operator Logbook Data
+#'
+#' @param gatePath path to DET gate opening spreadsheets
+#' @param previousScrapeFile Previous RDATA file that will be merged with
+#' @param newDataFileName Name of new gate data RDATA file to save
+#' @description Scrapes DET Operator Logbook spreadsheets (monthly)
+#' @return Saves an Rdata file
+#' @importFrom readxl dplyr
+#' @export
+#'
 getDETBCLScrapedOpsLogBooks <- function(
     gatePath = file.path(RdataDir,'GateOpenings','DETBCL'),
     previousScrapeFile = 'DETBCL_logbookScraped2014-2025.Rdata',
@@ -141,30 +148,317 @@ getDETBCLScrapedOpsLogBooks <- function(
 
 }
 
-MergeGateOpsWflowWQ <- function(DETBCLGateOpsFileName){
+#' Merge Gate operations data
+#'
+#' @param DETBCLGateOpsFileName Scraped DET operating room logbook data from Norm
+#' @param LOPlogbookFileName Scraped LOP operating room logbook data from Amory
+#' @param GtsCWMS Gate opening data from CWMS/GDACS
+#' @description Merges gate operations data
+#' @return A tibble with all gate operations data
+#' @importFrom ggplot2 dplyr purrr
+#' @export
+#'
+MergeGateOpsWflowWQ <- function(DETBCLGateOpsFileName,LOPlogbookFileName,GtsCWMS){
+
+
+  # Load DET Log book data
+  load(DETBCLGateOpsFileName)
+  DETBCL_lb <- y |>
+    mutate(name = gsub('DET_DET','DET',
+                       #gsub('Total_Flow','TotalFlow',
+                            gsub('Opn_ft','Opn',
+                                 gsub('Flow_cfs','Flow',name)))) |>
+    filter(name!='Total') |>
+    separate_wider_delim(name,delim='_',names = c('name','gate','param')) |>
+    mutate(data = 'LogBook')
+
+  # Load LOP log book data
+  load(LOPlogbookFileName)
+  df.LB.CWMS <- df.LB.CWMS |>
+    dplyr::rename(gate = Type,name = Location,Opn = Sum.Openings.ft,Flow = Spill.cfs) |>
+    dplyr::rename(DateTime = Datetime) |>
+    group_by(DateTime) |>
+    mutate(Flow = if_else(Status == 'Open',Flow,0)) |>
+    ungroup() |>
+    dplyr::select(-c('FB.elev.ft','TW.elev.ft',`Flow-Gen.cfs`,'Status','Date')) |>
+    pivot_longer(cols = c('Flow','Opn'),names_to = 'param') |>
+    mutate(data = 'LogBook')
+
+  # Load the FOS logbook/flow data
+
+
+  # Need to merge with GDACS data for FAL, HCR, CGR, GPR, FOS, BCL, DET
 
   # Find the DET and BCL data in the data that was saved from the get_cwms function above
-  load(DETBCLGateOpsFileName)
+  GtOpnWV <- GtsCWMS |>
+    full_join(df.LB.CWMS) |>
+    full_join(DETBCL_lb) |>
+    mutate(gate = gsub('SWY','SWG',gsub('SB','SWG',gate)))
 
-  CleanCWMSnames <- function(x) {
-    # Clean up CWMS names into shorter names. Move this outside this function eventually.
-    colnames(x) <- gsub('.Inst|.0|.Best|.MIXED-REV|.MIXED_REV|.1Hour|.3Hours|.15Minutes|.CBT-REV|.Ave','',colnames(x))
-    colnames(x) <- gsub('.Temp-Water','_Temp',colnames(x))
-    colnames(x) <- gsub('.Flow','_Flow',colnames(x))
-    colnames(x) <- gsub('.Elev-Forebay','_ElevFB',colnames(x))
-    colnames(x) <- gsub('.D0,5','.D0.5',colnames(x))
-    colnames(x) <- gsub('_S1-','_',colnames(x))
-    colnames(x) <- gsub('.%-Saturation-TDG','_TDG',colnames(x))
-    return(x)
+  return(GtOpnWV)
+}
+
+
+#' Create a csv file for Will that has gate-type specific flow at each project for use in thermal plots
+#'
+#' @param SaveName Name of file to save
+#' @description Create a csv file for Will that has gate-type specific flow at each project for use in thermal plots
+#' @return Writes a csv file for Will that has gate-type specific flow at each project for use in thermal plots
+#' @importFrom ggplot2 dplyr purrr
+#' @export
+#'
+MakeProjFlowData4Will <- function(SaveName){
+  # Extract the total flow by outlet, for python plots
+  #clrs<- cbPalette[2:4]
+
+  GtDatProjList <- list(NA)
+  GtMonNmDysList <- list(NA)
+  proj <- unique(GtOpnWV$name)[!grepl(c('DOR|COT|FRN|GPR|FOS'),unique(GtOpnWV$name))]
+  for(p in proj){
+    print(p)
+    GtDatProj <- GtOpnWV |>
+      filter(DateTime > as.POSIXct('2025-01-01'),
+             #!grepl('E',gate),
+             grepl(p,name)) |>
+             select(-name) |>
+      mutate(gate = as.factor(gate),data= as.factor(data),param = as.factor(param)) |>
+      arrange(DateTime)
+
+    if(p == 'DET'){
+      GtDatProj <- GtDatProj |>
+        filter(grepl('Flow',param) & !grepl('Total',gate)) |>
+        select(-param) |>
+        filter(!is.na(value)) |>
+        pivot_wider(names_from = c(gate),id_cols = c('DateTime','data')) |>
+        arrange(DateTime) |>
+        group_by(DateTime) |>
+        reframe(Total = Out,Gen = Gen,Spill = Spill,
+                SWG = sum(across(contains('SWG')),na.rm=T),
+                URO = sum(across(contains('URO')),na.rm=T),
+                LRO = sum(across(contains('LRO')),na.rm=T)) |>
+        pivot_longer(cols = -DateTime,names_to = 'Gate_Type',values_to = 'Flow_cfs',values_drop_na = TRUE) |>
+        distinct() #|>
+        #mutate(Gate_Type = factor(Gate_Type,levels = c('Total','Gen','Spill','SWG','URO','LRO'),ordered = T))
+    }
+
+    if(p == 'BCL'){
+      GtDatProj <- GtDatProj |>
+        filter(grepl('Flow',param) & !grepl('Total',gate)) |>
+        select(-param) |>
+        filter(!is.na(value)) |>
+        pivot_wider(names_from = c(gate),id_cols = c('DateTime','data')) |>
+        arrange(DateTime) |>
+        group_by(DateTime) |>
+        reframe(Total = Out,Gen = Gen,Spill = Spill,
+                SWG = sum(across(contains('SWG')),na.rm=T)) |>
+        pivot_longer(cols = -DateTime,names_to = 'Gate_Type',values_to = 'Flow_cfs',values_drop_na = TRUE) |>
+        distinct() #|>
+    }
+
+    if(p == 'HCR'){
+      GtDatProj <- GtDatProj |>
+        filter(grepl('Flow',param) & !grepl('Total|Spill',gate)) |>
+        select(-param) |>
+        filter(!is.na(value)) |>
+        pivot_wider(names_from = c(gate),id_cols = c('DateTime','data')) |>
+        arrange(DateTime) |>
+        group_by(DateTime) |>
+        reframe(Total = Out,Gen = Gen,#Spill = Spill,
+                RO = sum(across(contains('RO')),na.rm=T)) |>
+        pivot_longer(cols = -DateTime,names_to = 'Gate_Type',values_to = 'Flow_cfs',values_drop_na = TRUE) |>
+        distinct()
+    }
+    if(p == 'LOP'){
+      # LOP has no gate openings in GDACS, but logbook data has openings.
+      GtDatProj <- GtDatProj |>
+        # pivot_wider(names_from =  c(gate,param,data)) |>
+        group_by(DateTime) |>
+        filter(grepl('Flow',param) & grepl('Out|Spill|Gen',gate) & grepl('CWMS',data) |
+              grepl('Flow',param) & grepl('RO|SWG',gate) & grepl('LogBook',data)) |>
+        select(-param,data) |>
+        pivot_wider(names_from = c(gate),id_cols = c('DateTime')) |>
+        arrange(DateTime) |>
+        group_by(DateTime) |>
+        reframe(Total = Out,Gen = Gen,#Spill = Spill,
+                RO = sum(across(contains('RO')),na.rm=T),
+                SWG = sum(across(contains('SWG')),na.rm=T)) |>
+        pivot_longer(cols = -DateTime,names_to = 'Gate_Type',values_to = 'Flow_cfs',values_drop_na = TRUE) |>
+        distinct()
+    }
+    if(p == 'DEX'){
+      GtDatProj <- GtDatProj |>
+        filter(grepl('Flow',param) & !grepl('Total|Spill',gate)) |>
+        select(-param) |>
+        filter(!is.na(value)) |>
+        pivot_wider(names_from = c(gate),id_cols = c('DateTime','data')) |>
+        arrange(DateTime) |>
+        group_by(DateTime) |>
+        reframe(Total = Out,Gen = Gen,#Spill = Spill,
+                SWG = sum(across(contains('SWG')),na.rm=T)) |>
+        pivot_longer(cols = -DateTime,names_to = 'Gate_Type',values_to = 'Flow_cfs',values_drop_na = TRUE) |>
+        distinct()
+    }
+
+    if(p == 'FAL'){
+      # GDACS opn/closed for FAL fishhorns, RO openings to show usage
+      # Sarah working on verifying from scanned logbooks
+      GtDatProj <- GtDatProj |>
+        filter(param != 'Flow') |>
+        select(-data,-param) |>
+        pivot_wider(names_from = c(gate),id_cols = c('DateTime')) |>
+        group_by(DateTime) |>
+        mutate(RO = sum(RO1,RO2),
+               FishhornE765 = sum(FishhornE765ft18in,FishhornE765ft24in,FishhornE765ft30in),
+               FishhornE720 = sum(FishhornE720ft18in,FishhornE720ft24in,FishhornE720ft30in),
+               FishhornE800 = sum(FishhornE800ft18in,FishhornE800ft24in,FishhornE800ft30in)) |>
+        select(DateTime,RO,FishhornE720,FishhornE765,FishhornE800) |>
+        pivot_longer(cols = -DateTime,names_to = 'Gate_Type',values_to = 'Open',values_drop_na = TRUE) |>
+        distinct() |>
+        ungroup()
+    }
+
+    if(p == 'CGR'){
+      # Need to estimate DT based on GDACS/CWMS Opening and CWMS Spill
+      # DT was operated 2025-10-21 0705-1350
+      GtDatProj <- GtDatProj |>
+        filter(!is.na(value)) |>
+        pivot_wider(names_from = c(gate,param,data),id_cols = c('DateTime')) |>
+        mutate(DTGate_Opn = sum(if_else(DTGate1_Opn_CWMS <0,0,DTGate1_Opn_CWMS),
+                                if_else(DTGate2_Opn_CWMS <0,0,DTGate2_Opn_CWMS),na.rm=T),
+               DTGate_Flow = if_else(as.Date(DateTime) == as.POSIXct('2025-10-21') &
+                                       DTGate_Opn>0 & (round(RO1_Opn_CWMS)<=0 & round(RO2_Opn_CWMS)<=0),
+                                     Spill_Flow_CWMS,0)) |>
+        dplyr::select(-contains('Opn')) |>
+        rename_with(~ gsub("_LogBook", "",gsub("_CWMS", "", .x, fixed = TRUE))) |>
+        mutate(RO_Flow = if_else(DTGate_Flow>0,0,RO_Flow)) |>
+        #filter(DTGate_Flow>0) |>
+        #filter(DateTime > as.POSIXct('2025-10-21')) |>
+        #print(n = 100)
+        arrange(DateTime) |>
+        group_by(DateTime) |>
+        reframe(Total = Out_Flow,Gen = Gen_Flow,#Spill = Spill,
+                DT = DTGate_Flow,
+                RO = RO_Flow) |>
+        pivot_longer(cols = -DateTime,names_to = 'Gate_Type',values_to = 'Flow_cfs',values_drop_na = TRUE) |>
+        distinct()
+    }
+
+    if(p == 'GPR'){
+      # GPR has GDACS RO, but don't quite trust it yet,
+      # RO and spillway gate openings are based on operator logbooks
+      # Left off here!!! Waiting for Jack's data
+      GtDatProj <- GtDatProj |>
+        # pivot_wider(names_from =  c(gate,param,data)) |>
+        group_by(DateTime) |>
+        filter(grepl('Flow',param) & grepl('Out|Spill|Gen',gate) & grepl('CWMS',data) |
+                 grepl('Flow',param) & grepl('RO|SWG',gate) & grepl('LogBook',data)) |>
+        select(-param,data) |>
+        pivot_wider(names_from = c(gate),id_cols = c('DateTime')) |>
+        arrange(DateTime) |>
+        group_by(DateTime) |>
+        reframe(Total = Out,Gen = Gen,#Spill = Spill,
+                RO = sum(across(contains('RO')),na.rm=T),
+                SWG = sum(across(contains('SWG')),na.rm=T)) |>
+        pivot_longer(cols = -DateTime,names_to = 'Gate_Type',values_to = 'Flow_cfs',values_drop_na = TRUE) |>
+        distinct()
+    }
+
+
+    summary(GtDatProj)
+
+    # GtDatProj |>
+    #   filter(grepl('6',month(DateTime))) |>
+    #   print(n = 300)
+    if(p == 'FAL'){
+      dataVar = "Open"
+      ylb = 'Gate Opening'
+    }else{
+      dataVar = "Flow_cfs"
+      ylb = 'Flow, in cfs'
+    }
+
+    GtMonAvg <- GtDatProj |>
+      mutate(Month = factor(format(DateTime,'%b'),ordered = T,levels = month.abb)) |>
+      group_by(Month,Gate_Type) |>
+      reframe(Mean = round(mean(get(dataVar),na.rm=T))) |>
+      pivot_wider(names_from = Month,values_from = Mean) |>
+      mutate(Usage= paste0('AvgMnthly',dataVar))
+    GtMonNmDys <-
+      GtMonAvg |>
+      full_join(
+        GtDatProj |>
+        mutate(Date = as.Date(DateTime)) |>
+        group_by(Date,Gate_Type) |>
+        reframe(NmHrs = length(which(get(dataVar)>0))) |>
+        mutate(Month = factor(format(Date,'%b'),ordered = T,levels = month.abb)) |>
+        group_by(Month,Gate_Type) |>
+        reframe(
+          NmDys = length(which(NmHrs>0)),
+          AvgDlyHrs = round(mean(NmHrs,na.rm=T))) |>
+        pivot_longer(cols = -c(Month,Gate_Type)) |>
+        pivot_wider(names_from = Month) |>
+        filter(!grepl('Total',Gate_Type)) |>
+        dplyr::rename(Usage = name)) |>
+      arrange(Usage) |>
+      mutate(name = p)
+
+
+    figTsByGtParams <-
+      ggplot( GtDatProj,
+             aes(x=DateTime,y = get(dataVar),colour=Gate_Type,group = Gate_Type)) +
+      geom_line(alpha = 0.6) +
+      ylab(ylb) +
+      xlab('') +
+      scale_x_datetime(breaks = seq.POSIXt(from = min(GtDatProj$DateTime),to = max(GtDatProj$DateTime),by = 'month'),
+                   date_labels = '%b') +
+      #scale_color_manual(values = clrs) +
+      scale_color_brewer(palette = "Set2") +
+      theme(strip.text.y.left = element_text(angle = 0),
+            axis.text.x=element_text(size = 10,angle=45,hjust=1),
+            axis.text=element_text(size=12),
+            axis.title=element_text(size=12,face="bold"),
+            strip.placement = "outside",
+            strip.text.x = element_text(size = 12),
+            strip.text.y = element_text(size = 10),
+            strip.background = element_rect(fill=NA),
+            legend.title = element_blank(),
+            legend.position = 'top'
+      ) +
+      ggtitle(paste0('2025 ',p,' Gate-Type Summary of ',dataVar))
+
+    figTsByGtParams
+
+    ggplot2::ggsave(plot = figTsByGtParams,
+                    filename = file.path(WriteDir,'GateOpenings',paste0(p,'_',SaveName,'.png')),
+                    device='png',width=9,height=4)
+    write.csv(GtMonAvg,row.names = F,file.path(WriteDir,'GateOpenings',paste0(p,'_','Monthly_',SaveName,'.csv')))
+    GtDatProjList[[p]] <- GtDatProj |>
+      dplyr::rename(value = !!dataVar) |>
+      mutate(name = p,param = dataVar)
+    GtMonNmDysList[[p]] <- GtMonNmDys
+    rm(GtMonNmDys,GtDatProj)
   }
 
-  load(RdataFls[grepl('DET',RdataFls)])
-  xw <-   CleanCWMSnames(xw)
-  # Left off here!!!
-  wqops <- xw |>
-    dplyr::rename(DET_TDG = `DET-TailwaterRightBank.%-Saturation-TDG.Inst.0.0.Best`)
+  GtDatProjList <- Filter(Negate(is.na), GtDatProjList)
+  GtDatProjList <- Filter(Negate(is.null), GtDatProjList)
+  GtDatByOutType <- purrr::reduce(GtDatProjList,full_join)
 
-  load(RdataFls[grepl('BCL',RdataFls)])
+  GtMonNmDysList <- Filter(Negate(is.na), GtMonNmDysList)
+  GtMonNmDysList <- Filter(Negate(is.null), GtMonNmDysList)
+  GtMonNmDysSum <- purrr::reduce(GtMonNmDysList,full_join)
+
+  svNm <- file.path(WriteDir,'GateOpenings',paste0('Hourly',SaveName,'Combined.csv'))
+  write('# Total_Flow = total dam outflow, Spill = non-power outflow, SWG = spillway gate, RO = Regulating outlet, Fall creek fishhorns are open (>0) or closed (0), Fall Creek RO is gate opening in feet',svNm)
+  write.csv(GtDatByOutType |>
+              pivot_wider(id_cols = c(DateTime),names_from = c(name,Gate_Type,param)),
+            row.names = F,svNm)
+
+  svNm <- file.path(WriteDir,'GateOpenings',paste0('MonthlySummary',SaveName,'Combined.csv'))
+  write('# Total_Flow = total dam outflow, Spill = non-power outflow, SWG = spillway gate, RO = Regulating outlet, Fall creek fishhorns are open (>0) or closed (0), Fall Creek RO is gate opening in feet',svNm)
+  write.csv(GtMonNmDysSum,row.names = F,svNm)
+
+}
+
 
 
   # wqops <- wqops |>
@@ -332,5 +626,17 @@ MergeGateOpsWflowWQ <- function(DETBCLGateOpsFileName){
 
 
 
-}
 
+
+
+# CleanCWMSnames <- function(x) {
+#   # Clean up CWMS names into shorter names. Move this outside this function eventually.
+#   colnames(x) <- gsub('.Inst|.0|.Best|.MIXED-REV|.MIXED_REV|.1Hour|.3Hours|.15Minutes|.CBT-REV|.Ave','',colnames(x))
+#   colnames(x) <- gsub('.Temp-Water','_Temp',colnames(x))
+#   colnames(x) <- gsub('.Flow','_Flow',colnames(x))
+#   colnames(x) <- gsub('.Elev-Forebay','_ElevFB',colnames(x))
+#   colnames(x) <- gsub('.D0,5','.D0.5',colnames(x))
+#   colnames(x) <- gsub('_S1-','_',colnames(x))
+#   colnames(x) <- gsub('.%-Saturation-TDG','_TDG',colnames(x))
+#   return(x)
+# }
