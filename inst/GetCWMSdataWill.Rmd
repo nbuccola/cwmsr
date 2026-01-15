@@ -32,29 +32,59 @@ library(tidyverse)
 library(purrr)
 library(readxl)
 #library(w2r)
+
+######################
+# BEGIN USER INPUT #
+######################
+# Setup input variables
+
+# Setup paths
 LocalWd <- 'C:/Repositories/cwmsr'
 WriteDir <- 'C:/Users/g2echnb9/OneDrive - US Army Corps of Engineers/Documents/WOOT/Analysis'
 CDApath <- 'https://wm.nws.ds.usace.army.mil:8243/nwdp-data/'
 CDApath <- 'https://wm.nww.ds.usace.army.mil:8243/nwdp-data/'
-# Setup input variables
-bdate <- strptime('2000-01-01',"%Y-%m-%d",tz = 'PST8PDT')
-edate <- strptime('2025-12-18',"%Y-%m-%d",tz = 'PST8PDT')
-yrs <- gsub(', ','',toString(unique(c(format(bdate,'%Y'),format(edate,'%Y')))))
 
-# Read in JSON config file for all project data paths
+# Setup Begin and end dates
+bdate <- strptime('2000-01-01',"%Y-%m-%d",tz = 'PST8PDT')
+edate <- strptime('2025-12-31',"%Y-%m-%d",tz = 'PST8PDT')
+#
+yrs <- gsub(', ','',toString(unique(c(format(bdate,'%Y'),format(edate,'%Y')))))
+# If only want to get more current data for all paths
+#edate <- "Update"    
+
+
+# Setup which sites to retrieve
+Projects = 'FAL' # 'All' #c('CGR','FAL')
+
+# Setup path to JSON config file for all project data paths
 cnfg = jsonlite::fromJSON(file.path(LocalWd,"inst","WillCWMSTempTDGConfig.json"))
+
+# Declare if only specific CWMS paths are to be read, declare them here.
+# SpecificCWMSpaths <- 'FBWSELVRule'
+SpecificCWMSpaths <- 'GDACS_Gates'
+
+# Setup path to previous Rdata files. 
+# If none, declare NA and a new directory will be created
+PreviousRdataDir = NA
+PreviousRdataDir = file.path(WriteDir,'Wil_All_Ops20002025')
+
+######################
+# END USER INPUT #
+######################
+
+# Load Outlet elevations: variable qgtConfig
+source(file.path(WriteDir,'data','QGT_elvsFrom_w2_con_2026-01-06.r'))
+# Load OR DEQ WQ standards: variable wqCrit
+source(file.path(WriteDir,'data','ORDEQ_wqCrit.r'))
+
 cnfg = cnfg[['projects']]
 names(cnfg)
 
-Projects = 'All' #c('CGR','FAL')
 if(Projects[1] ==  'All'){
   whichProj <- 1:length(cnfg)
 }else{
   whichProj <- which(names(cnfg) %in% Projects)
 }
-
-PreviousRdataDir = NA
-PreviousRdataDir = file.path(WriteDir,'Wil_All_Ops20002025')
 
 if(is.na(PreviousRdataDir)){
   # Create Folder For New Data
@@ -75,14 +105,21 @@ for(i in whichProj){
   #i = 1
   Proj <- cnfg[[i]][[grep('ProjAcrnm',names(cnfg[[i]]))]]
   if(!is.na(PreviousRdataDir)){
-    #dataFileName <- paste0(Proj,'_OpsRaw',yrs,format(edate,'-%m-%d'),'.Rdata')
-    OldRdataDirProj <- file.path(RdataDir,fls[grepl(paste0(Proj,'_'),RawFls)])
+    OldRdataDirProj <- file.path(RdataDir,RawFls[grepl(paste0(Proj,'_'),RawFls)])
     cnfg[[i]][['OldRdataDirProj']] <- cnfg[[i]][['RdataDirProj']] <- OldRdataDirProj
     cnfg[[i]][['dataFileName']] <- rev(strsplit(OldRdataDirProj,'\\/')[[1]])[1]
-    edate <- "Update"
+    if(exists('SpecificCWMSpaths')){
+      # Only get CWMS paths that are declared here
+      cnfg[[i]][['cwms_paths']] <- 
+        cnfg[[i]][['cwms_paths']][grepl(SpecificCWMSpaths,names(cnfg[[i]][['cwms_paths']]))]
+      cnfg[[i]][['mergeNewPaths']] <- TRUE
+    }else{
+      cnfg[[i]][['mergeNewPaths']] <- FALSE
+    }
   }else{
     cnfg[[i]][['dataFileName']] <- paste0(Proj,'_OpsRaw',yrs,'.Rdata')
     cnfg[[i]][['RdataDirProj']] <- file.path(RdataDir,dataFileName)
+    cnfg[[i]][['mergeNewPaths']] <- FALSE
   }
   cnfg[[i]][['edate']] <- edate
 }
@@ -94,44 +131,98 @@ for(i in whichProj){
 ```{r GetCWMSopsData, echo=FALSE}
 
 for(i in whichProj){
-  #i = 1
+  #i = 8 
   Proj <- cnfg[[i]][[grep('ProjAcrnm',names(cnfg[[i]]))]]
-  GetCWMSdata(p = cnfg[[i]],bdate=bdate,edate = cnfg[[i]][['edate']])
+  source(file.path(LocalWd,'R','get_cwms_utilities.r'))
+  GetCWMSdata(p = cnfg[[i]],bdate=bdate,edate = cnfg[[i]][['edate']],
+              mergeNewPaths = cnfg[[i]][['mergeNewPaths']])
 }
 
 ```
-
-
-```{r CleanAndProcessRawData}
+```{r ConvertRawDataToHourly}
 
 for(i in whichProj){
+  #i=10
   Proj <- cnfg[[i]][[grep('ProjAcrnm',names(cnfg[[i]]))]]
   print(Proj)
   # Load project data
   load(file.path(RdataDir,cnfg[[i]][['dataFileName']]))
   
   # Interpolate to hourly data and remove missing columns
-  InterpCols(cnfg[[i]][['RdataDirProj']])
+  source(file.path(LocalWd,'R','get_cwms_utilities.r'))
+  InterpCols(RdataDirProj = cnfg[[i]][['RdataDirProj']])
+}
+  
+```
+
+
+```{r CleanAndProcessRawData}
+
+for(i in whichProj){
+  #i=10
+  Proj <- cnfg[[i]][[grep('ProjAcrnm',names(cnfg[[i]]))]]
+  print(Proj)
+  # Load project data
+  load(file.path(RdataDir,gsub('Raw','HrlyClean',cnfg[[i]][['dataFileName']])))
   
   # Calculate weighted average of inflow temperature
-  if(any(grepl('QinPath',names(cwms_paths))) & !grepl('LOP',Proj)){
-    CalcTin()
+  if(any(grepl('QinPath',names(cnfg[[i]][['cwms_paths']]))) & !grepl('LOP',Proj)){
+    source(file.path(LocalWd,'R','temp_calcs.r'))
+    CalcTin(cwms_paths = cnfg[[i]][['cwms_paths']])
   }
   # Remove Outliers, Calculate Dailys, Monthly, Annual Summaries, Plot output
-  # Left off here: see line 345
-  source(file.path(LocalWd,'R','get_cwms_utilities.r'))
-  calcDailys()
+  calcDailyMonthlyAnn()
+  # Calculate the 7dADM on temperature variables
+  source(file.path(LocalWd,'R','temp_calcs.r'))
+  calc7dadm(xld)
   
   # Calculate days of exceedance for Temperature variables
-  # Left off here, need to work on calculating over months and how to modify the xMon variable
-  calcExceed(DataType = 'Temp-Water',ExcVals = c(16,18))
+  # Check for temperature data and sites of interest
+  tsites <- data.frame(BCL = 'BCLO',CGR = 'CGRO',FOS = 'SSFO',DEX = 'DEXO',HCR = 'HCRO')
+  tsites[1,] <- paste0(tsites[1,],'.Temp-Water')#,collapse='|')
+  source(file.path(LocalWd,'R','temp_calcs.r'))
+  xlmExcL <- list(NA)
+  xlmExcL[['Temp']] <- calcThreshMon(DataType = 'Temp-Water',TVals = c(16,18,20,'TTargPath'))
+  xlmExcL[['TDG']] <- calcThreshMon(DataType = 'TDG',TVals = c(110,120))
+  xlmExcL[['Elev-Temp']] <- calcThreshMon(DataType = 'Elev-Forebay',TVals = 'WtempControl')
+  #xlmElevExc <- calcThreshMon(DataType = 'Opening',TVals = 'GateOpen') # Check if monthly summaries will work
+  #xlmFlowExc <- calcThreshMon(DataType = 'Flow',TVals = 'QTargPath') # Not implemented yet; only applies to SLM
+  xlmExcL <- Filter(Negate(is.logical), xlmExcL)
+  xlmExc <- purrr::reduce(xlmExcL,full_join)
   
+  # Calculate Annual Exceedances
+  xlaExc <- calcThreshAnn(xlmExc)
+  
+  # Estimate Egg Emergence
+  if(any(grepl(Proj,names(tsites)))){
+    # Estimate Emergence for spring chinook (spawning in fall)
+    source(file.path(LocalWd,'R','temp_calcs.r'))
+    xlaChnkEggEmrg <- EstimateEmergence(xld,
+                      spawnDay = c(244,263,274),
+                      hatchValue = 1750
+                      )
+    # Estimate Emergence for winter steelhead (spawning in spring)
+    # xlaStlhdEggEmrg <-EstimateEmergence(xld[grepl(tsites,xld$name),],
+    #                   spawnDay = c(244,263,274),
+    #                   hatchValue = 1150 # Ask Rich for these values for Steelhead
+    #                   )
+    xlaEggEmrg <- xlaChnkEggEmrg |>
+                  mutate(species = 'Spring Chinook') |>
+      #full_join(xlaStlhdEggEmrg |>
+      #            mutate(species = 'Winter Steelhead')) |>
+      mutate(name = unique(xld$name)[grepl(tsites[,names(tsites) %in% Proj],unique(xld$name)) &
+                                       !grepl("Targ",unique(xld$name))])
+    rm(xlaChnkEggEmrg) 
+  }else{
+    print(paste("Skipping Estimated Emergence; No temperature data at",tsites))
+    xlaEggEmrg <- NULL
+  }
   
   #Save New Processed Data as Rdata File
-  save(Proj,OutletI,xw,xwd,xwdSum,xAnn,cwms_paths,
-       file = file.path(RdataDir,gsub('_OpsHrlyClean','_OpsProcessed',dataFileName)))
+  save(Proj,OutletI,xw,xld,xldSum,xlm,xlmExc,xla,xlaExc,xlaEggEmrg,#cwms_paths,
+       file = file.path(RdataDir,gsub('_OpsRaw','_OpsProcessed',cnfg[[i]][['dataFileName']])))
   
-  rm(xw,xwd,xAnn,xwdSum,Proj,cwms_paths,dataFileName)
+  rm(xw,xld,xldSum,xlm,xlmExc,xla,xlaExc,xlaEggEmrg,Proj)
 }
 
 ```
@@ -145,29 +236,80 @@ Prior to next step, copy log books from:
 3) FOS: 
 
 
+
+
+
+
+```{r LoadGDACSgateOpenings}
+# Load GDACs Data
+GateDataList <- list(NA)
+for(i in whichProj){
+  Proj <- cnfg[[i]][[grep('ProjAcrnm',names(cnfg[[i]]))]]
+  print(Proj)
+  # Load project data
+  load(file.path(RdataDir,gsub('Raw','HrlyClean',cnfg[[i]][['dataFileName']])))
+  if(any(grepl('Opening|Gen',colnames(xw)))){
+    GateDataList[[i]] <- xw |>
+      dplyr::select('DateTime',contains('Opening'),contains('Flow-Gen'),contains('Flow-Spill'),contains('Flow-Out')) |>
+      filter(DateTime>as.POSIXct('2024-12-31'))
+  }
+  
+}
+GateDataList <- Filter(Negate(is.null), GateDataList)
+Gts <- purrr::reduce(GateDataList,full_join) 
+rm(GateDataList)
+GtsCWMS <- Gts |>
+  pivot_longer(-DateTime) |>
+  mutate(name = gsub('.Inst|.0.0|.1Hour|.Ave|.CBT-REV|.Best|.MIXED-REV|.GDACS-RAW','',name),
+         name = gsub('DT-E','DTE',gsub('DT-G','DTG',name)),
+         name = gsub('.Opening','.Open',name)) |>
+  separate_wider_delim(name,delim='-',names = c('name','gate')) |>
+  mutate(data = 'CWMS',
+         param = if_else(grepl('Flow',gate),'Flow',if_else(grepl('Open',gate),'Opn','NA')),
+         gate = gsub('.Flow|.Open','',gate))
+ 
+
+```
+
+
 ```{r LoadGateOpeningData}
 NewDETBCLGateFile = 'DETBCL_logbookScraped2014-2025.Rdata'
 gatePath = file.path(WriteDir,'GateOpenings','DETBCL')
 
 RdataFls <- list.files(RdataDir,pattern = '.Rdata',full.names = T)
-
-getDETBCLScrapedOpsLogBooks(
-  gatePath=gatePath,
-  previousScrapeFile = NewDETBCLGateFile)
+scrapeNewLogBooks <- F
+source(file.path(LocalWd,'R','read_opslogbooks.r'))
+if(scrapeNewLogBooks){
+  getDETBCLScrapedOpsLogBooks(
+    gatePath=gatePath,
+    previousScrapeFile = NewDETBCLGateFile)
+}
 
 # Merge Logbook gate opening data with DET-BCL ops and TDG:
-  # Left off here!!!
-  # Find the DET and BCL data in the data that was saved from the get_cwms function above
-MergeGateOpsWflowWQ(
+source(file.path(LocalWd,'R','read_opslogbooks.r'))
+GtOpnWV <- MergeGateOpsWflowWQ(
   DETBCLGateOpsFileName = file.path(gatePath,NewDETBCLGateFile),
-  DETBCLcwmsDataName = file.path(RdataDir,))
+  LOPlogbookFileName = file.path(WriteDir,'GateOpenings','USACE_LOPHCRDEXCGR_ops_v01072026.RData'),
+  GtsCWMS = GtsCWMS)
+
+# Left off here!!! Go through each project and send flow data for each outlet to Will.
+
+# Example using a common colorblind-friendly palette
+# cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+# clrs<- cbPalette[2:4]
+# names(clrs) <- c("2023","2024","2025")
+
+source(file.path(LocalWd,'R','read_opslogbooks.r'))
+MakeProjFlowData4Will(SaveName = '2025GateOps')
 
 ```
 
 
-```{r MergeOldDataWithNew}
+```{r PlotGateOpenings}
 
-# Left off here! Need to test the merging of old and new Rdata files
+source(file.path(LocalWd,'R','get_cwms_utilities.r'))
+
+GtOpnWV
 
 # Iterate through Rdata files and merge into one large file (xw, xwd,xwdSum,xAnn variables)
 oldDataFileName <- 'DET_HistoricOpsTemp2000-2025.Rdata'
@@ -177,10 +319,6 @@ if(!file.exists(file.path(RdataDir,newDataFileName))){
   }
 load(file.path(RdataDir,newDataFileName))
 
-# Example using a common colorblind-friendly palette
-# cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
-# clrs<- cbPalette[2:4]
-# names(clrs) <- c("2023","2024","2025")
 
 MakeMultiYrPlots()
 
