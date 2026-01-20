@@ -54,14 +54,22 @@ yrs <- gsub(', ','',toString(unique(c(format(bdate,'%Y'),format(edate,'%Y')))))
 
 
 # Setup which sites to retrieve
+<<<<<<< HEAD
 Projects = 'All' #'FAL' #  #c('CGR','FAL')
+=======
+Projects = 'FAL' # 'All' #c('CGR','FAL')
+>>>>>>> fa19c5f11a312acbfcca8860bc583de252d3b5e9
 
 # Setup path to JSON config file for all project data paths
 cnfg = jsonlite::fromJSON(file.path(LocalWd,"inst","WillCWMSTempTDGConfig.json"))
 
 # Declare if only specific CWMS paths are to be read, declare them here.
 # SpecificCWMSpaths <- 'FBWSELVRule'
+<<<<<<< HEAD
 # SpecificCWMSpaths <- 'GDACS_Gates'
+=======
+SpecificCWMSpaths <- 'GDACS_Gates'
+>>>>>>> fa19c5f11a312acbfcca8860bc583de252d3b5e9
 
 # Setup path to previous Rdata files. 
 # If none, declare NA and a new directory will be created
@@ -159,7 +167,11 @@ for(i in whichProj){
 ```{r CleanAndProcessRawData}
 
 for(i in whichProj){
+<<<<<<< HEAD
   #i=8
+=======
+  #i=10
+>>>>>>> fa19c5f11a312acbfcca8860bc583de252d3b5e9
   Proj <- cnfg[[i]][[grep('ProjAcrnm',names(cnfg[[i]]))]]
   print(Proj)
   # Load project data
@@ -171,7 +183,10 @@ for(i in whichProj){
     CalcTin(cwms_paths = cnfg[[i]][['cwms_paths']])
   }
   # Remove Outliers, Calculate Dailys, Monthly, Annual Summaries, Plot output
+<<<<<<< HEAD
   source(file.path(LocalWd,'R','get_cwms_utilities.r'))
+=======
+>>>>>>> fa19c5f11a312acbfcca8860bc583de252d3b5e9
   calcDailyMonthlyAnn()
   # Calculate the 7dADM on temperature variables
   source(file.path(LocalWd,'R','temp_calcs.r'))
@@ -251,7 +266,11 @@ for(i in whichProj){
   load(file.path(RdataDir,gsub('Raw','HrlyClean',cnfg[[i]][['dataFileName']])))
   if(any(grepl('Opening|Gen',colnames(xw)))){
     GateDataList[[i]] <- xw |>
+<<<<<<< HEAD
       dplyr::select('DateTime',contains('Open'),contains('Flow-Gen'),contains('Flow-Spill'),contains('Flow-Out')) |>
+=======
+      dplyr::select('DateTime',contains('Opening'),contains('Flow-Gen'),contains('Flow-Spill'),contains('Flow-Out')) |>
+>>>>>>> fa19c5f11a312acbfcca8860bc583de252d3b5e9
       filter(DateTime>as.POSIXct('2024-12-31'))
   }
   
@@ -263,6 +282,7 @@ GtsCWMS <- Gts |>
   pivot_longer(-DateTime) |>
   mutate(name = gsub('.Inst|.0.0|.1Hour|.Ave|.CBT-REV|.Best|.MIXED-REV|.GDACS-RAW','',name),
          name = gsub('DT-E','DTE',gsub('DT-G','DTG',name)),
+<<<<<<< HEAD
          name = gsub('ft-','ft',gsub('n-E','nE',gsub('.Code-Open','.Opening',name)))) |>#,
          #name = gsub('.Opening','.Open',name)) |>
   separate_wider_delim(name,delim='-',names = c('name','gate')) |>
@@ -271,6 +291,15 @@ GtsCWMS <- Gts |>
          name = gsub('.Flow','',name),
          gate = gsub('.Flow|.Opening|.Open','',gate))
  
+=======
+         name = gsub('.Opening','.Open',name)) |>
+  separate_wider_delim(name,delim='-',names = c('name','gate')) |>
+  mutate(data = 'CWMS',
+         param = if_else(grepl('Flow',gate),'Flow',if_else(grepl('Open',gate),'Opn','NA')),
+         gate = gsub('.Flow|.Open','',gate))
+ 
+
+>>>>>>> fa19c5f11a312acbfcca8860bc583de252d3b5e9
 ```
 
 
@@ -294,7 +323,11 @@ GtOpnWV <- MergeGateOpsWflowWQ(
   LOPlogbookFileName = file.path(WriteDir,'GateOpenings','USACE_LOPHCRDEXCGR_ops_v01072026.RData'),
   GtsCWMS = GtsCWMS)
 
+<<<<<<< HEAD
 # Left off here!!! Waiting for GPR-FOS data from Jack. Go through each project and send flow data for each outlet to Will.
+=======
+# Left off here!!! Go through each project and send flow data for each outlet to Will.
+>>>>>>> fa19c5f11a312acbfcca8860bc583de252d3b5e9
 
 # Example using a common colorblind-friendly palette
 # cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
