@@ -225,6 +225,7 @@ calcThreshMon <- function(DataType,TVals){
     OutVals <- qgtConfig[['CenterElvs']][[grep(Proj,names(qgtConfig[['CenterElvs']]))]]
     TNms <- paste0('Above ',gsub('1','',qgtConfig[['ExcElev']][grep(Proj,names(qgtConfig[['ExcElev']]))]))
     TValsNum <- OutVals[,qgtConfig[['ExcElev']][,grep(Proj,names(qgtConfig[['ExcElev']]))]]
+    if(Proj == 'CGR') TValsNum <- TValsNum +5
     xlmExc <- xlmExcSub |>
       expand_grid(TValsNum) |>
       arrange(name, Date) |>
@@ -281,11 +282,12 @@ calcThreshMon <- function(DataType,TVals){
 #' @importFrom dplyr
 #' @export
 #'
-calcThreshAnn <- function(xlmExc){
+calcThreshAnn <- function(xlmExc,months=1:12){
   # Tabulate monthly values into annual values
   xlaExc <- xlmExc |>
     dplyr::select(-starts_with('Prc')) |>
     #pivot_longer(cols = -c('name','Year','Month','TValsNum'),names_to = "ExcType") |>
+    filter(grepl(paste0(months,collapse='|'),as.character(as.numeric(Month)))) |>
     group_by(name,Year,ExcType,TValsNum) |>
     reframe(Exc = sum(Exc),
             PrcExc = Exc/365) |>

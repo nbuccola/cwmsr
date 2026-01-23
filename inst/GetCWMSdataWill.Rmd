@@ -54,22 +54,14 @@ yrs <- gsub(', ','',toString(unique(c(format(bdate,'%Y'),format(edate,'%Y')))))
 
 
 # Setup which sites to retrieve
-<<<<<<< HEAD
 Projects = 'All' #'FAL' #  #c('CGR','FAL')
-=======
-Projects = 'FAL' # 'All' #c('CGR','FAL')
->>>>>>> fa19c5f11a312acbfcca8860bc583de252d3b5e9
 
 # Setup path to JSON config file for all project data paths
 cnfg = jsonlite::fromJSON(file.path(LocalWd,"inst","WillCWMSTempTDGConfig.json"))
 
 # Declare if only specific CWMS paths are to be read, declare them here.
 # SpecificCWMSpaths <- 'FBWSELVRule'
-<<<<<<< HEAD
 # SpecificCWMSpaths <- 'GDACS_Gates'
-=======
-SpecificCWMSpaths <- 'GDACS_Gates'
->>>>>>> fa19c5f11a312acbfcca8860bc583de252d3b5e9
 
 # Setup path to previous Rdata files. 
 # If none, declare NA and a new directory will be created
@@ -86,6 +78,7 @@ source(file.path(WriteDir,'data','QGT_elvsFrom_w2_con_2026-01-06.r'))
 source(file.path(WriteDir,'data','ORDEQ_wqCrit.r'))
 
 cnfg = cnfg[['projects']]
+SiteAcrnms <- sapply(cnfg,function(x){unlist(x[grep('Site|Acrnm',names(x))])})
 names(cnfg)
 
 if(Projects[1] ==  'All'){
@@ -147,6 +140,9 @@ for(i in whichProj){
 }
 
 ```
+
+Create a regular time-series
+
 ```{r ConvertRawDataToHourly}
 
 for(i in whichProj){
@@ -167,11 +163,6 @@ for(i in whichProj){
 ```{r CleanAndProcessRawData}
 
 for(i in whichProj){
-<<<<<<< HEAD
-  #i=8
-=======
-  #i=10
->>>>>>> fa19c5f11a312acbfcca8860bc583de252d3b5e9
   Proj <- cnfg[[i]][[grep('ProjAcrnm',names(cnfg[[i]]))]]
   print(Proj)
   # Load project data
@@ -183,10 +174,7 @@ for(i in whichProj){
     CalcTin(cwms_paths = cnfg[[i]][['cwms_paths']])
   }
   # Remove Outliers, Calculate Dailys, Monthly, Annual Summaries, Plot output
-<<<<<<< HEAD
   source(file.path(LocalWd,'R','get_cwms_utilities.r'))
-=======
->>>>>>> fa19c5f11a312acbfcca8860bc583de252d3b5e9
   calcDailyMonthlyAnn()
   # Calculate the 7dADM on temperature variables
   source(file.path(LocalWd,'R','temp_calcs.r'))
@@ -207,7 +195,8 @@ for(i in whichProj){
   xlmExc <- purrr::reduce(xlmExcL,full_join)
   
   # Calculate Annual Exceedances
-  xlaExc <- calcThreshAnn(xlmExc)
+  xlaExc <- calcThreshAnn(xlmExc |> filter(!grepl('DysWSELVExc',ExcType))) |>
+    full_join(calcThreshAnn(xlmExc |> filter(grepl('DysWSELVExc',ExcType)),months = 4:9))
   
   # Estimate Egg Emergence
   if(any(grepl(Proj,names(tsites)))){
@@ -218,14 +207,18 @@ for(i in whichProj){
                       hatchValue = 1750
                       )
     # Estimate Emergence for winter steelhead (spawning in spring)
-    # xlaStlhdEggEmrg <-EstimateEmergence(xld[grepl(tsites,xld$name),],
-    #                   spawnDay = c(244,263,274),
-    #                   hatchValue = 1150 # Ask Rich for these values for Steelhead
-    #                   )
+    # From 94-98 Winter Steelhead from Marion Forks Hatchery Program
+    # Hatch = 510-540 ATU
+    # Swim up/Emergence = 920-950 ATU
+    # Start at 5/1, 5/15, 6/1
+    xlaStlhdEggEmrg <-EstimateEmergence(xld[grepl(tsites,xld$name),],
+                      spawnDay = c(121, 166, 182),
+                      hatchValue = 935
+                      )
     xlaEggEmrg <- xlaChnkEggEmrg |>
                   mutate(species = 'Spring Chinook') |>
-      #full_join(xlaStlhdEggEmrg |>
-      #            mutate(species = 'Winter Steelhead')) |>
+      full_join(xlaStlhdEggEmrg |>
+                  mutate(species = 'Winter Steelhead')) |>
       mutate(name = unique(xld$name)[grepl(tsites[,names(tsites) %in% Proj],unique(xld$name)) &
                                        !grepl("Targ",unique(xld$name))])
     rm(xlaChnkEggEmrg) 
@@ -266,11 +259,7 @@ for(i in whichProj){
   load(file.path(RdataDir,gsub('Raw','HrlyClean',cnfg[[i]][['dataFileName']])))
   if(any(grepl('Opening|Gen',colnames(xw)))){
     GateDataList[[i]] <- xw |>
-<<<<<<< HEAD
       dplyr::select('DateTime',contains('Open'),contains('Flow-Gen'),contains('Flow-Spill'),contains('Flow-Out')) |>
-=======
-      dplyr::select('DateTime',contains('Opening'),contains('Flow-Gen'),contains('Flow-Spill'),contains('Flow-Out')) |>
->>>>>>> fa19c5f11a312acbfcca8860bc583de252d3b5e9
       filter(DateTime>as.POSIXct('2024-12-31'))
   }
   
@@ -282,24 +271,14 @@ GtsCWMS <- Gts |>
   pivot_longer(-DateTime) |>
   mutate(name = gsub('.Inst|.0.0|.1Hour|.Ave|.CBT-REV|.Best|.MIXED-REV|.GDACS-RAW','',name),
          name = gsub('DT-E','DTE',gsub('DT-G','DTG',name)),
-<<<<<<< HEAD
-         name = gsub('ft-','ft',gsub('n-E','nE',gsub('.Code-Open','.Opening',name)))) |>#,
-         #name = gsub('.Opening','.Open',name)) |>
-  separate_wider_delim(name,delim='-',names = c('name','gate')) |>
-  mutate(data = 'CWMS',
-         param = if_else(grepl('Flow',name) | grepl('Flow',gate),'Flow',if_else(grepl('Open',gate),'Opn','NA')),
-         name = gsub('.Flow','',name),
-         gate = gsub('.Flow|.Opening|.Open','',gate))
- 
-=======
-         name = gsub('.Opening','.Open',name)) |>
+         name = gsub('ft-','ft',gsub('n-E','nE',gsub('.Code-Open','.Opening',name)))) |>
   separate_wider_delim(name,delim='-',names = c('name','gate')) |>
   mutate(data = 'CWMS',
          param = if_else(grepl('Flow',gate),'Flow',if_else(grepl('Open',gate),'Opn','NA')),
          gate = gsub('.Flow|.Open','',gate))
  
 
->>>>>>> fa19c5f11a312acbfcca8860bc583de252d3b5e9
+
 ```
 
 
@@ -323,16 +302,7 @@ GtOpnWV <- MergeGateOpsWflowWQ(
   LOPlogbookFileName = file.path(WriteDir,'GateOpenings','USACE_LOPHCRDEXCGR_ops_v01072026.RData'),
   GtsCWMS = GtsCWMS)
 
-<<<<<<< HEAD
 # Left off here!!! Waiting for GPR-FOS data from Jack. Go through each project and send flow data for each outlet to Will.
-=======
-# Left off here!!! Go through each project and send flow data for each outlet to Will.
->>>>>>> fa19c5f11a312acbfcca8860bc583de252d3b5e9
-
-# Example using a common colorblind-friendly palette
-# cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
-# clrs<- cbPalette[2:4]
-# names(clrs) <- c("2023","2024","2025")
 
 source(file.path(LocalWd,'R','read_opslogbooks.r'))
 MakeProjFlowData4Will(SaveName = '2025GateOps')
@@ -340,11 +310,43 @@ MakeProjFlowData4Will(SaveName = '2025GateOps')
 ```
 
 
-```{r PlotGateOpenings}
+```{r PlotMetrics}
 
-source(file.path(LocalWd,'R','get_cwms_utilities.r'))
+DataList <- list(Exc = list(NA),
+                 Stats = list(NA))
 
-GtOpnWV
+source(file.path(LocalWd,'R','AnnMetricPlotting.r'))
+for(i in whichProj){
+  Proj <- cnfg[[i]][[grep('ProjAcrnm',names(cnfg[[i]]))]]
+  print(Proj)
+  # Load project data
+  load(file.path(RdataDir,gsub('Raw','Processed',cnfg[[i]][['dataFileName']])))
+  DataList[['Exc']][[i]] <- 
+    xlmExc |>
+    full_join(xlaExc |> mutate(Month = 'Annual'),
+              xlaEggEmrg, by = c('name','Year','Month','TValsNum','ExcType','PrcExc','Exc'))
+  DataList[['Stats']][[i]] <- 
+    xlm |> mutate(Month = as.character(Month)) |>
+    full_join(xla |> mutate(Month = 'Annual',
+                            Year = as.numeric(as.character(Year)),
+                            name = as.character(name))
+              ) 
+}
+DataList[['Exc']] <- Filter(Negate(is.null), DataList[['Exc']])
+DataList[['Stats']] <- Filter(Negate(is.null), DataList[['Stats']])
+OpsExc <- purrr::reduce(DataList[['Exc']],full_join) 
+OpsStats <- purrr::reduce(DataList[['Stats']],full_join) 
+rm(DataList)
+
+# Example using a common colorblind-friendly palette
+cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+clrs<- cbPalette[c(1:4,6)]
+names(clrs) <- c(2021:2025)
+
+# Flow Metrics
+MultiYrQPlots(SaveName = '2025Ops')
+OpsExc
+
 
 # Iterate through Rdata files and merge into one large file (xw, xwd,xwdSum,xAnn variables)
 oldDataFileName <- 'DET_HistoricOpsTemp2000-2025.Rdata'
