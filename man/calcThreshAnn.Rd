@@ -4,7 +4,7 @@
 \alias{calcThreshAnn}
 \title{Tabulate the exceedance values by year for each CWMS data path}
 \usage{
-calcThreshAnn(xlmExc)
+calcThreshAnn(xlmExc, months = 1:12)
 }
 \arguments{
 \item{xlmExc}{Monthly exceedence tibble (e.g., Temp-Water,TDG,Flow)}

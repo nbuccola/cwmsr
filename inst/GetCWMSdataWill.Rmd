@@ -41,7 +41,6 @@ library(readxl)
 # Setup paths
 LocalWd <- 'C:/Repositories/cwmsr'
 WriteDir <- 'C:/Users/g2echnb9/OneDrive - US Army Corps of Engineers/Documents/WOOT/Analysis'
-CDApath <- 'https://wm.nws.ds.usace.army.mil:8243/nwdp-data/'
 CDApath <- 'https://wm.nww.ds.usace.army.mil:8243/nwdp-data/'
 
 # Setup Begin and end dates
@@ -54,7 +53,7 @@ yrs <- gsub(', ','',toString(unique(c(format(bdate,'%Y'),format(edate,'%Y')))))
 
 
 # Setup which sites to retrieve
-Projects = 'All' #'FAL' #  #c('CGR','FAL')
+Projects = 'All' #c('GPR','FOS') #'FAL' #  #c('CGR','FAL')
 
 # Setup path to JSON config file for all project data paths
 cnfg = jsonlite::fromJSON(file.path(LocalWd,"inst","WillCWMSTempTDGConfig.json"))
@@ -62,6 +61,7 @@ cnfg = jsonlite::fromJSON(file.path(LocalWd,"inst","WillCWMSTempTDGConfig.json")
 # Declare if only specific CWMS paths are to be read, declare them here.
 # SpecificCWMSpaths <- 'FBWSELVRule'
 # SpecificCWMSpaths <- 'GDACS_Gates'
+#SpecificCWMSpaths <- c("TDGdwnStrmPath")
 
 # Setup path to previous Rdata files. 
 # If none, declare NA and a new directory will be created
@@ -73,7 +73,10 @@ PreviousRdataDir = file.path(WriteDir,'Wil_All_Ops20002025')
 ######################
 
 # Load Outlet elevations: variable qgtConfig
-source(file.path(WriteDir,'data','QGT_elvsFrom_w2_con_2026-01-06.r'))
+source(file.path(WriteDir,'data','QGTelvs_2026-01-06.r'))
+qgtConfig$SubBasins <- data.frame(SubBasin = unlist(qgtConfig$SubBasins[1,]),
+                                  Proj = colnames(qgtConfig$SubBasins)) |>
+  mutate(SubBasin = factor(SubBasin,levels = c('NSant','SSant','SFMck','MFWil'),ordered=T))
 # Load OR DEQ WQ standards: variable wqCrit
 source(file.path(WriteDir,'data','ORDEQ_wqCrit.r'))
 
@@ -162,76 +165,96 @@ for(i in whichProj){
 
 ```{r CleanAndProcessRawData}
 
+tsites <- data.frame(BCL = 'BCLO',CGR = 'CGRO',FOS = 'SSFO',FAL = 'FALO',DEX = 'DEXO',HCR = 'HCRO')
+tsites[1,] <- paste0(tsites[1,],'.Temp-Water')#,collapse='|')
+TDGSites <- c('DET','BCLO','GPRO','SSFO','CGRO','HCRO','LPQO','DEXO') #'BCL','CGR',
+appendProcessed <- T # If you want to use the calculated and processed data instead of re-processing (can take a while) prior to metric calcs 
+
 for(i in whichProj){
   Proj <- cnfg[[i]][[grep('ProjAcrnm',names(cnfg[[i]]))]]
   print(Proj)
   # Load project data
-  load(file.path(RdataDir,gsub('Raw','HrlyClean',cnfg[[i]][['dataFileName']])))
-  
-  # Calculate weighted average of inflow temperature
-  if(any(grepl('QinPath',names(cnfg[[i]][['cwms_paths']]))) & !grepl('LOP',Proj)){
-    source(file.path(LocalWd,'R','temp_calcs.r'))
-    CalcTin(cwms_paths = cnfg[[i]][['cwms_paths']])
-  }
-  # Remove Outliers, Calculate Dailys, Monthly, Annual Summaries, Plot output
-  source(file.path(LocalWd,'R','get_cwms_utilities.r'))
-  calcDailyMonthlyAnn()
-  # Calculate the 7dADM on temperature variables
-  source(file.path(LocalWd,'R','temp_calcs.r'))
-  calc7dadm(xld)
-  
-  # Calculate days of exceedance for Temperature variables
-  # Check for temperature data and sites of interest
-  tsites <- data.frame(BCL = 'BCLO',CGR = 'CGRO',FOS = 'SSFO',DEX = 'DEXO',HCR = 'HCRO')
-  tsites[1,] <- paste0(tsites[1,],'.Temp-Water')#,collapse='|')
-  source(file.path(LocalWd,'R','temp_calcs.r'))
-  xlmExcL <- list(NA)
-  xlmExcL[['Temp']] <- calcThreshMon(DataType = 'Temp-Water',TVals = c(16,18,20,'TTargPath'))
-  xlmExcL[['TDG']] <- calcThreshMon(DataType = 'TDG',TVals = c(110,120))
-  xlmExcL[['Elev-Temp']] <- calcThreshMon(DataType = 'Elev-Forebay',TVals = 'WtempControl')
-  #xlmElevExc <- calcThreshMon(DataType = 'Opening',TVals = 'GateOpen') # Check if monthly summaries will work
-  #xlmFlowExc <- calcThreshMon(DataType = 'Flow',TVals = 'QTargPath') # Not implemented yet; only applies to SLM
-  xlmExcL <- Filter(Negate(is.logical), xlmExcL)
-  xlmExc <- purrr::reduce(xlmExcL,full_join)
-  
-  # Calculate Annual Exceedances
-  xlaExc <- calcThreshAnn(xlmExc |> filter(!grepl('DysWSELVExc',ExcType))) |>
-    full_join(calcThreshAnn(xlmExc |> filter(grepl('DysWSELVExc',ExcType)),months = 4:9))
-  
-  # Estimate Egg Emergence
-  if(any(grepl(Proj,names(tsites)))){
-    # Estimate Emergence for spring chinook (spawning in fall)
-    source(file.path(LocalWd,'R','temp_calcs.r'))
-    xlaChnkEggEmrg <- EstimateEmergence(xld,
-                      spawnDay = c(244,263,274),
-                      hatchValue = 1750
-                      )
-    # Estimate Emergence for winter steelhead (spawning in spring)
-    # From 94-98 Winter Steelhead from Marion Forks Hatchery Program
-    # Hatch = 510-540 ATU
-    # Swim up/Emergence = 920-950 ATU
-    # Start at 5/1, 5/15, 6/1
-    xlaStlhdEggEmrg <-EstimateEmergence(xld[grepl(tsites,xld$name),],
-                      spawnDay = c(121, 166, 182),
-                      hatchValue = 935
-                      )
-    xlaEggEmrg <- xlaChnkEggEmrg |>
-                  mutate(species = 'Spring Chinook') |>
-      full_join(xlaStlhdEggEmrg |>
-                  mutate(species = 'Winter Steelhead')) |>
-      mutate(name = unique(xld$name)[grepl(tsites[,names(tsites) %in% Proj],unique(xld$name)) &
-                                       !grepl("Targ",unique(xld$name))])
-    rm(xlaChnkEggEmrg) 
+  if(appendProcessed){
+    load(file.path(RdataDir,gsub('Raw','Processed',cnfg[[i]][['dataFileName']])))
   }else{
-    print(paste("Skipping Estimated Emergence; No temperature data at",tsites))
+    load(file.path(RdataDir,gsub('Raw','HrlyClean',cnfg[[i]][['dataFileName']])))
+    # Calculate weighted average of inflow temperature
+    if(any(grepl('QinPath',names(cnfg[[i]][['cwms_paths']]))) & !grepl('LOP',Proj)){
+      source(file.path(LocalWd,'R','temp_calcs.r'))
+      CalcTin(cwms_paths = cnfg[[i]][['cwms_paths']])
+    }
+    # Remove Outliers, Calculate Dailys, Monthly, Annual Summaries, Plot output
+    source(file.path(LocalWd,'R','get_cwms_utilities.r'))
+    calcDailyMonthlyAnn()
+    # Calculate the 7dADM on temperature variables
+    source(file.path(LocalWd,'R','temp_calcs.r'))
+    calc7dadm(xld)
+  }
+  rm(xlmExc,xlmExcL)
+
+  if(any(grepl(Proj,names(tsites))) |
+     any(grepl(Proj,TDGSites))){
+    # Calculate days of exceedance for Temperature variables
+    # Check for temperature data and sites of interest
+    source(file.path(LocalWd,'R','temp_calcs.r'))
+    xlmExcL <- list(NA)
+    xlmExcL[['Temp']] <- calcThreshMon(DataType = 'Temp-Water',TVals = c(16,18,20,'TTargPath'))
+    xlmExcL[['TDG']] <- calcThreshMon(DataType = 'TDG',TVals = c(110,120))
+    xlmExcL[['Elev-Temp']] <- calcThreshMon(DataType = c('Elev-Forebay','Spill'),TVals = 'WtempControl')
+    #xlmElevExc <- calcThreshMon(DataType = 'Opening',TVals = 'GateOpen') # Check if monthly summaries will work
+    #xlmFlowExc <- calcThreshMon(DataType = 'Flow',TVals = 'QTargPath') # Not implemented yet; only applies to SLM
+    xlmExcL <- Filter(Negate(is.logical), xlmExcL)
+    xlmExc <- purrr::reduce(xlmExcL,full_join)
+  
+    # Calculate Annual Exceedances
+    xlaExc <- calcThreshAnn(xlmExc |> filter(!grepl('DysWTempCon',ExcType))) |>
+      full_join(calcThreshAnn(xlmExc |> filter(grepl('DysWTempCon',ExcType)),months = 4:9))
+    
+    # Estimate Egg Emergence
+    if(any(grepl(Proj,names(tsites)))){
+      # Estimate Emergence for spring chinook (spawning in fall)
+      source(file.path(LocalWd,'R','temp_calcs.r'))
+      xlaChnkEggEmrg <- EstimateEmergence(xld,
+                        spawnDay = c(244,263,274),
+                        hatchValue = 1750
+                        )
+      if(any(grepl(Proj,c('BCL','FOS')))){
+        # Estimate Emergence for winter steelhead (spawning in spring)
+        # From 94-98 Winter Steelhead from Marion Forks Hatchery Program
+        # Hatch = 510-540 ATU
+        # Swim up/Emergence = 920-950 ATU
+        # Start at 5/1, 5/15, 6/1
+        xlaStlhdEggEmrg <-EstimateEmergence(xld, #[grepl(Proj,xld$name),],
+                          spawnDay = c(121, 166, 182),
+                          hatchValue = 935
+                          )
+        xlaEggEmrg <- xlaChnkEggEmrg |>
+                      mutate(species = 'Spring Chinook') |>
+          full_join(xlaStlhdEggEmrg |>
+                      mutate(species = 'Winter Steelhead'))
+      }else{
+        xlaEggEmrg <- xlaChnkEggEmrg |>
+                      mutate(species = 'Spring Chinook') 
+      }
+      xlaEggEmrg <- xlaEggEmrg |>
+          mutate(name = unique(xld$name)[grepl(tsites[,names(tsites) %in% Proj],unique(xld$name)) &
+                                           !grepl("Targ",unique(xld$name))])
+      rm(xlaChnkEggEmrg,xlaStlhdEggEmrg) 
+    }else{
+      print(paste("Skipping Estimated Emergence;",Proj,"Not a compliance point for temperature"))
+      xlaEggEmrg <- NULL
+    }
+  }else{
+    xlmExc <- NULL
+    xlaExc <- NULL
     xlaEggEmrg <- NULL
   }
-  
+
   #Save New Processed Data as Rdata File
   save(Proj,OutletI,xw,xld,xldSum,xlm,xlmExc,xla,xlaExc,xlaEggEmrg,#cwms_paths,
        file = file.path(RdataDir,gsub('_OpsRaw','_OpsProcessed',cnfg[[i]][['dataFileName']])))
   
-  rm(xw,xld,xldSum,xlm,xlmExc,xla,xlaExc,xlaEggEmrg,Proj)
+  rm(xw,xld,xldSum,xlm,xlmExc,xlmExcL,xla,xlaExc,xlaEggEmrg,Proj)
 }
 
 ```
@@ -315,36 +338,53 @@ MakeProjFlowData4Will(SaveName = '2025GateOps')
 DataList <- list(Exc = list(NA),
                  Stats = list(NA))
 
-source(file.path(LocalWd,'R','AnnMetricPlotting.r'))
 for(i in whichProj){
   Proj <- cnfg[[i]][[grep('ProjAcrnm',names(cnfg[[i]]))]]
   print(Proj)
   # Load project data
   load(file.path(RdataDir,gsub('Raw','Processed',cnfg[[i]][['dataFileName']])))
-  DataList[['Exc']][[i]] <- 
-    xlmExc |>
-    full_join(xlaExc |> mutate(Month = 'Annual'),
-              xlaEggEmrg, by = c('name','Year','Month','TValsNum','ExcType','PrcExc','Exc'))
+  if(!is.null(xlmExc)){
+    DataList[['Exc']][[i]] <- 
+      xlmExc |>
+      full_join(xlaExc |> mutate(Month = 'Annual'),
+                xlaEggEmrg, by = c('name','Year','Month','TValsNum','ExcType','PrcExc','Exc'))
+  }
   DataList[['Stats']][[i]] <- 
     xlm |> mutate(Month = as.character(Month)) |>
     full_join(xla |> mutate(Month = 'Annual',
                             Year = as.numeric(as.character(Year)),
                             name = as.character(name))
-              ) 
+              )
+  if(exists('xlaEggEmrg')){
+    DataList[['EggEmrg']][[i]] <- xlaEggEmrg
+  }
+  rm(xw,xld,xldSum,xlm,xlmExc,xla,xlaExc,xlaEggEmrg,Proj)
 }
 DataList[['Exc']] <- Filter(Negate(is.null), DataList[['Exc']])
 DataList[['Stats']] <- Filter(Negate(is.null), DataList[['Stats']])
+DataList[['EggEmrg']] <- Filter(Negate(is.null), DataList[['EggEmrg']])
 OpsExc <- purrr::reduce(DataList[['Exc']],full_join) 
 OpsStats <- purrr::reduce(DataList[['Stats']],full_join) 
+OpsEggEmrg <- purrr::reduce(DataList[['EggEmrg']],full_join) 
 rm(DataList)
 
 # Example using a common colorblind-friendly palette
-cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73",  "#0072B2", "#D55E00", "#CC79A7") #"#F0E442",
 clrs<- cbPalette[c(1:4,6)]
 names(clrs) <- c(2021:2025)
 
+sb <- levels(qgtConfig$SubBasins$SubBasin)
+PlotDataList <- as.list(sb)
+source(file.path(LocalWd,'R','AnnMetricPlotting.r'))
+ # Left off line 286 with GPR/FOS
+
+for(i in 1:nlevels(qgtConfig$SubBasins$SubBasin)){
+  PlotDataList[[i]] <-  MultiYrQPlots(
+    SubBasinSites = qgtConfig$SubBasins[grep(sb[i],qgtConfig$SubBasins$SubBasin),],
+    SaveName = '2025Ops')
+    
+}
 # Flow Metrics
-MultiYrQPlots(SaveName = '2025Ops')
 OpsExc
 
 

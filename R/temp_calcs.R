@@ -92,9 +92,10 @@ calc7dadm <- function(xld){
 #' @export
 #'
 calcThreshMon <- function(DataType,TVals){
-  dTypNms <- grepl(DataType,unique(xld$name)) &
+  rm(xlmExc)
+  dTypNms <- grepl(paste0(DataType,collapse = '|'),unique(xld$name)) &
     !grepl('_S1|Targ',unique(xld$name))
-  if(!any(dTypNms) & !any(grepl(Proj,names(tsites)))){
+  if(!any(dTypNms)){
     print(paste0('No Data Paths with ',DataType,'. Skipping any threshold analysis.'))
     return(NULL)
   }
@@ -109,7 +110,13 @@ calcThreshMon <- function(DataType,TVals){
 
   # Temperature: Calculate time above threshold
   # Next step is to use the wqCrit variable instead of a straight number
-  if(grepl('Temp',DataType)){
+  if(any(grepl('Temp',DataType))){
+    if(!any(grepl(Proj,names(tsites)))){
+      print(paste0('No Data Paths with ',DataType,'. Skipping any threshold analysis.'))
+      return(NULL)
+    }
+    print(DataType)
+
     TNms <- paste0('Exc',gsub('Path','',TVals))
     TValsNum <- as.numeric(TVals)[!is.na(as.numeric(TVals))]
     xlmExc <- xlmExcSub |>
@@ -132,11 +139,15 @@ calcThreshMon <- function(DataType,TVals){
   if(any(grepl('TargPath',TVals)) & any(grepl('Targ',unique(xlmExcSub$name)))){
     TargNms <- unique(xld$name)[grepl('Targ',unique(xld$name))]
     # Applies to sites that have targets associated with them
-    if(grepl('Flow',DataType)){
+    if(any(grepl('Flow',DataType))){
       #Use the Daily Min data
       # Left off here!!!
     }
-    if(grepl('Temp',DataType)){
+    if(any(grepl('Temp',DataType))){
+      if(!any(grepl(Proj,names(tsites)))){
+        print(paste0('No Data Paths with ',DataType,'. Skipping any threshold analysis.'))
+        return(NULL)
+      }
       TNms <- paste0('Exc',gsub('Path','',TVals))
       TValsNum <- as.numeric(TVals)[!is.na(as.numeric(TVals))]
       # Rename Target names
@@ -202,46 +213,70 @@ calcThreshMon <- function(DataType,TVals){
   }
 
   # TDG: Calculate time daily max is above threshold
-  if(grepl('TDG',DataType)){
+  if(any(grepl('TDG',DataType))){
+    if(!any(grepl(Proj,TDGSites))){
+      print(paste0('No Data Paths with ',DataType,'. Skipping any threshold analysis.'))
+      return(NULL)
+    }
+    print(DataType)
     TNms <- paste0('Exc',gsub('Path','',TVals))
     TValsNum <- as.numeric(TVals)[!is.na(as.numeric(TVals))]
     #Use the daily max data
     xlmExc <- xlmExcSub |>
       expand_grid(TValsNum) |>
+      filter(grepl(DataType,name)) |>
       arrange(name, Date) |>
       mutate(Month = as.factor(Month),Year = as.factor(Year)) |>
       group_by(name,Month,Year,TValsNum) |>
-      reframe(DysMaxExc = length(which(Max >TValsNum)),
-              PrcDysMaxExc = length(which(Max >TValsNum)) /  length(Max)
-      )|>
+      reframe(DysMaxExc = if_else(any(!is.finite(Max)),NA,length(which(Max >TValsNum))),
+              PrcDysMaxExc = DysMaxExc /  length(Max))|>
       mutate(TValsNum = as.factor(TValsNum))
   }
 
   # WSELV: Calculate time above threshold
-  if(grepl('Elev-Forebay',DataType) &
+  if(any(grepl('Elev-Forebay',DataType)) &
      any(grepl('WtempControl',TVals))  &
      any(names(qgtConfig[['CenterElvs']]) %in% Proj) &
      any(names(qgtConfig[['ExcElev']]) %in% Proj)){
+    print(DataType)
     OutVals <- qgtConfig[['CenterElvs']][[grep(Proj,names(qgtConfig[['CenterElvs']]))]]
     TNms <- paste0('Above ',gsub('1','',qgtConfig[['ExcElev']][grep(Proj,names(qgtConfig[['ExcElev']]))]))
     TValsNum <- OutVals[,qgtConfig[['ExcElev']][,grep(Proj,names(qgtConfig[['ExcElev']]))]]
-    if(Proj == 'CGR') TValsNum <- TValsNum +5
     xlmExc <- xlmExcSub |>
       expand_grid(TValsNum) |>
       arrange(name, Date) |>
       mutate(Month = as.factor(Month),Year = as.factor(Year)) |>
-      group_by(name,Month,Year,TValsNum) |>
-      reframe(
-        DysWSELVExc = length(which(Mean >TValsNum)),
-        PrcDysWSELVExc = length(which(Mean >TValsNum)) /  length(Mean)
-      ) |>
-      mutate(TValsNum = as.factor(TValsNum))
-  }
+      select(Date,Month,Year,TValsNum,name,Mean) |>
+      group_by(name,Month,Year,TValsNum)
+    if(any(grepl('Spill',unique(xlmExc$name)))){
+      # Account for days with spillway use when above spillway
+      xlmExc <- xlmExc |>
+        pivot_wider(values_from = Mean) |>
+        rename_with(~gsub(paste0(Proj,'.'), "", .x, fixed = TRUE)) |>
+        group_by(Month,Year,TValsNum) |>
+        reframe(
+          DysWTempCon = length(which(`Elev-Forebay` >TValsNum & `Flow-Spill` >0)),
+          PrcDysWTempCon = DysWTempCon /  length(`Elev-Forebay`)
+        ) |>
+        mutate(TValsNum = as.factor(TValsNum))
+    }else{
+      # Don't account for days with spillway use when above spillway
+      xlmExc <- xlmExc      |>
+        reframe(
+          DysWTempCon = length(which(Mean >TValsNum)),
+          PrcDysWTempCon = length(which(Mean >TValsNum)) /  length(Mean)
+        ) |>
+        mutate(TValsNum = as.factor(TValsNum))
+    }
+    xlmExc <- xlmExc      |>
+      mutate(name = paste0(!!Proj,'.Elev-Forebay'))
+  } # End Days above Temp Control Structure Calc
 
   # WSELV: Calculate time at low pool, begin, end dates
-  if(grepl('Elev-Forebay',DataType) &
+  if(any(grepl('Elev-Forebay',DataType)) &
      any(grepl('LowPool',TVals))  &
      any(grepl('Injunction',colnames(xlmExcSub)))){
+    print(DataType)
     # Left off here
     OutVals <- min(xlmExcSub)
     TNms <- paste0('Above ',gsub('1','',qgtConfig[['ExcElev']][grep(Proj,names(qgtConfig[['ExcElev']]))]))
@@ -268,9 +303,8 @@ calcThreshMon <- function(DataType,TVals){
       pivot_wider(names_from = 'ExcType2')|>
       mutate(ExcType = as.factor(ExcType))
   }else{
-    xlmExc <- NA
+    return(NULL)
   }
-
   return(xlmExc)
 }
 
@@ -289,7 +323,7 @@ calcThreshAnn <- function(xlmExc,months=1:12){
     #pivot_longer(cols = -c('name','Year','Month','TValsNum'),names_to = "ExcType") |>
     filter(grepl(paste0(months,collapse='|'),as.character(as.numeric(Month)))) |>
     group_by(name,Year,ExcType,TValsNum) |>
-    reframe(Exc = sum(Exc),
+    reframe(Exc = sum(if_else(!is.finite(Exc),NA,Exc)), #,na.rm = T
             PrcExc = Exc/365) |>
     mutate(ExcType = as.factor(ExcType))
 
@@ -372,7 +406,7 @@ EstimateEmergence <- function(xld,
           if(min(ty[!is.na(ty$Mean),'JDAY'],na.rm = T)>sd){
             atusd <- data.frame(atu=NA,atu.d=NA,nmiss=NA,spawnDay=sd,Year=yr)
           }else{
-            atusd <- calcEmergenceTiming(tout = ty,atu.day = sd) %>%
+            atusd <- calcEmergenceTiming(tout = ty,atu.day = sd,hatchValue=hatchValue) %>%
               mutate(spawnDay = sd,Year = yr)
             # December is interpolated between November and January
           }
