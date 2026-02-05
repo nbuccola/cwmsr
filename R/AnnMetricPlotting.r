@@ -33,7 +33,7 @@ MultiYrQPlots <- function(SubBasinSites,SaveName){
   custom_labels[names(custom_labels) %in% c(2,4,6,8,10,12)] <-''#c('2','4','5','7','8','10','11')] <- ""
 
   # Outflow
-  QoutSites <- c('DET|BCL|GPR|FOS|CGR|HCR|LOP|DEX')
+  QoutSites <- c('DET|BCL|GPR|FOS|CGR|BLU|HCR|LOP|DEX')
   QoutSub <- OpsStats |>
     dplyr::filter(grepl('Flow-Out|Flow-Spill',name),Year>2020,Year<2026,
                   grepl(QoutSites,name),
@@ -167,6 +167,9 @@ MultiYrQPlots <- function(SubBasinSites,SaveName){
            name = gsub('.15Minutes|.3Hours|.6Hours','',name),
            Year = as.numeric(as.character(Year))) |>
     dplyr::filter(grepl('WTempCon',ExcType),Year>2020,Year<2026) |>
+  #   mutate(name = as.factor(name)) |>
+  #   summary()
+  # filter(grepl('LOP',name))
     filter(grepl(sbsites,name)) |>
     mutate(name = gsub('-Forebay|.Elev|.0','',name)) |>
     mutate(name = factor(name,ordered=T,levels=SubBasinSites$Proj)) |>
@@ -193,6 +196,11 @@ MultiYrQPlots <- function(SubBasinSites,SaveName){
                        CritElev= NA) ) |>
     mutate(name = factor(name,ordered=T,levels=SubBasinSites$Proj))
 
+  if(length(tsites[grepl(sbsites,names(tsites))])>1){
+    ht <-5; wd <-7
+  }else{
+    ht <-3; wd <-3
+  }
   # Annual WSELV Max Table
   AnnWSExctab <-
     ggplot(WsExcSub |>
@@ -211,23 +219,22 @@ MultiYrQPlots <- function(SubBasinSites,SaveName){
           legend.position ='none',
           axis.text.x=element_text(angle=45,hjust=1))
   AnnWSExctab
-  ggsave(plot=AnnWSExctab,device = 'png',width=7,height=2,
+  ggsave(plot=AnnWSExctab,device = 'png',width=7,height=ht,
          filename = file.path(RdataDir,paste(SaveName,sbnm,'DysWSAbvTempConTab.png',sep = '_')))
 
   ###########
   # Prep figs for Temperature
-  TSites <- c(BCL = 'BCLO',FOS = 'SSFO',CGR = 'CGRO',HCR = 'HCRO',DEX = 'DEXO',FAL ='FALO')
   TSub <- OpsStats |>
     dplyr::filter(grepl('Temp',name),Year>2020,Year<2026,
                   !Month %in% c('1','2','3'),
-                  grepl(paste0(TSites[grepl(sbsites,names(TSites))],collapse='|'),name)) |>
+                  grepl(paste0(tsites[grepl(sbsites,names(tsites))],collapse='|'),name)) |>
     mutate(Month = factor(Month,levels = c(1:12,'Annual'),ordered=T),
            name = gsub('.0|.1Day|.COORD_Fisheries_|.USACE_Temporary_|.NMFS_USFWS_ODFW_| ','',
                        gsub('.Fisheries ','.',name)),
            name = gsub('.Temp-Water','',if_else(grepl('Targ',name),name,paste0(name,'.Observed'))),
            Year = as.numeric(Year)) |>
     separate_wider_delim(name,delim='.',names = c('name','param')) |>
-    mutate(name = factor(gsub('.Flow','',name),ordered=T,levels=TSites),
+    mutate(name = factor(gsub('.Observed|.Targ','',name),ordered=T,levels=gsub('.Temp-Water','',tsites)),
            param = as.factor(param))
   unique(OpsExc$ExcType)
 
@@ -273,17 +280,13 @@ MultiYrQPlots <- function(SubBasinSites,SaveName){
     dplyr::filter(grepl('7dADM',ExcType),
                   !grepl('Targ',name),
                   Year>2020,Year<2026,
-                  #!Month %in% c('1','2','3','4','12'),
-                  grepl(paste0(TSites[grepl(sbsites,names(TSites))],collapse='|'),name),
-                  #grepl(paste0(TSites,collapse='|'),name),
-                  grepl(sbsites,name)) |>
+                  grepl(paste0(tsites[grepl(sbsites,names(tsites))],collapse='|'),name)
+                  ) |>
     mutate(Month = factor(Month,levels = c(1:12,'Annual'),ordered=T),
-           name = factor(gsub('.Temp-Water','',name),ordered=T,levels=TSites))
+           name = factor(gsub('.Temp-Water','',name),ordered=T,levels=gsub('.Temp-Water','',tsites)))
   unique(TexcSub$ExcType)
 
   DatSums[['Texc']] <-  TexcSub
-
-  # Left off here with GPR/FOS
 
   # Annual Excedence of values
   AnnTexctab <-
@@ -294,13 +297,14 @@ MultiYrQPlots <- function(SubBasinSites,SaveName){
            aes(y = TValsNum,x=Year,label = Exc,colour = Exc,fill = Exc,group = Year)) + #shape = TValsNum,
     geom_tile(alpha=0.8) +
     geom_text(color='black',size=3) +
+    facet_grid(~name) +
     ylab(paste(unique(TexcSub$name),'Ann. Days Above Temp [\u00B0C]')) +
     theme(axis.title.x=element_blank(),
           strip.text.y = element_text(angle = 0),
           legend.position ='none',
           axis.text.x=element_text(angle=45,hjust=1)) #+
     AnnTexctab
-  ggsave(plot=AnnTexctab,device = 'png',width=3,height=3,
+  ggsave(plot=AnnTexctab,device = 'png',width=wd,height=3,
          filename = file.path(RdataDir,paste(SaveName,sbnm,'AnnTexcTab.png',sep = '_')))
 
 
@@ -309,27 +313,27 @@ MultiYrQPlots <- function(SubBasinSites,SaveName){
     ggplot( TexcSub |>
               filter(
                 !grepl('Ann',Month),
-                grepl('Max|Min',ExcType),
+                grepl('Max|Min|Btwn',ExcType),
                 !is.na(Exc)) |>
               mutate(Year = as.factor(Year),
                      Exc = if_else(Exc==0,NA,Exc),
-                     ExcType = gsub('Dys7dADMExcMaxTarg','Above',gsub('Dys7dADMBlwMinTarg','Below',ExcType)),
-                     ExcType = factor(ExcType,levels = c('Above','Below'),ordered=T)),
+                     ExcType = gsub('Dys7dADMBtwnTargs','Within',gsub('Dys7dADMExcMaxTarg','Above',gsub('Dys7dADMBlwMinTarg','Below',ExcType))),
+                     ExcType = factor(ExcType,levels = c('Above','Within','Below'),ordered=T)),
             aes(y = Exc,x=Month,colour = ExcType,shape = ExcType,fill = ExcType,group = Year)) +
     geom_point(alpha=0.8) +
-    scale_shape_manual(name = '',values = c(24, 25)) +
+    scale_shape_manual(name = '',values = c(24,0,25)) +
     facet_grid(Year~name,scales='free') +
     scale_x_discrete(labels = AllMonthLabs) +
-    scale_color_manual(name = '',values = c("Below" = "Cornflower Blue", "Above" = "orange")) +
-    scale_fill_manual(name = '',values = c("Below" = "Cornflower Blue", "Above" = "orange")) +
-    ylab(paste('Days per Month Above/Below Target at',unique(TexcSub$name))) +
+    scale_color_manual(name = '',values = c("Below" = "Cornflower Blue","Within"='black', "Above" = "orange")) +
+    scale_fill_manual(name = '',values = c("Below" = "Cornflower Blue", "Within"=NA,"Above" = "orange")) +
+    ylab(paste('Days per Month Above,Within,Below Target')) +
     theme(strip.text.y = element_text(angle = 90),
           legend.position ='top',
           theme(legend.title = element_blank()),
           axis.text.x=element_text(angle=45,hjust=1)) #+
     #ggtitle('Days per Month 7dADM is Above or Below Temperature Target')
   MonT7dADMexctab
-  ggsave(plot=MonT7dADMexctab,device = 'png',width=5,height=5,
+  ggsave(plot=MonT7dADMexctab,device = 'png',width=wd,height=5,
          filename = file.path(RdataDir,paste(SaveName,sbnm,'MonTTargAbvBlwArrows.png',sep = '_')))
 
   # Annual Excedence of values
@@ -338,73 +342,91 @@ MultiYrQPlots <- function(SubBasinSites,SaveName){
     ggplot(TexcSub |>
              filter(
                grepl('Ann',Month),
-               grepl('Max|Min',ExcType)) |>
+               grepl('Max|Min|Btwn',ExcType)) |>
              mutate(Year = as.factor(Year),
-                    ExcType = gsub('Dys7dADMExcMaxTarg','Above',gsub('Dys7dADMBlwMinTarg','Below',ExcType)),
-                    ExcType = factor(ExcType,levels = c('Above','Below'),ordered=T)),
+                    ExcType = gsub('Dys7dADMBtwnTargs','Within',gsub('Dys7dADMExcMaxTarg','Above',gsub('Dys7dADMBlwMinTarg','Below',ExcType))),
+                    ExcType = factor(ExcType,levels = c('Above','Within','Below'),ordered=T)),
            aes(y = Exc,x=Year,colour = ExcType,shape = ExcType,fill = ExcType,group = Year)) +
     geom_point(alpha=0.8) +
-    #facet_grid(~name,scales='free') +
-    scale_shape_manual(name = '',values = c(24, 25)) +
-    scale_color_manual(name = '',values = c("Below" = "Cornflower Blue", "Above" = "orange")) +
-    scale_fill_manual(name = '',values = c("Below" = "Cornflower Blue", "Above" = "orange")) +
-    ylab(paste('Ann Days Above/Below Target at',unique(TexcSub$name))) +
+    facet_grid(~name,scales='free') +
+    scale_shape_manual(name = '',values = c(24,0,25)) +
+    scale_color_manual(name = '',values = c("Below" = "Cornflower Blue","Within"='black', "Above" = "orange")) +
+    scale_fill_manual(name = '',values = c("Below" = "Cornflower Blue", "Within"=NA,"Above" = "orange")) +
+    ylab('Ann Days Above,Within,Below Target') +
     theme(axis.title.x=element_blank(),
           strip.text.y = element_text(angle = 0),
           legend.position ='top',
           theme(legend.title = element_blank()),
           axis.text.x=element_text(angle=45,hjust=1)) #+
   AnnT7dADMexc
-  ggsave(plot=AnnT7dADMexc,device = 'png',width=3,height=3,
+  ggsave(plot=AnnT7dADMexc,device = 'png',width=wd,height=3,
          filename = file.path(RdataDir,paste(SaveName,sbnm,'AnnTTargAbvBlwArrows.png',sep = '_')))
+
+  if(any(grepl(sbnm,c('NSant','SSant')))){
+    # Steelhead egg emergence
+    # # Need to remove FALO and add SSFO for Steelhead
+    DatSums[['StlhdEggEmrg']] <-
+      OpsEggEmrg |>
+      filter(grepl('Steelhead',species),!grepl('FALO',name),
+             grepl(paste0(tsites[grepl(sbsites,names(tsites))],collapse='|'),name))|>
+      mutate(spawnDay = as.factor(format(as.Date(spawnDay,origin = as.Date('2000-01-01')),'%m/%d')),
+             name = factor(gsub('.Temp-Water','',name),ordered=T,levels=gsub('.Temp-Water','',tsites))) |>
+      select(-nmiss,-species)
+
+    AnnStlEmerge <-
+      ggplot(DatSums[['StlhdEggEmrg']] |>
+               dplyr::filter(Year>2020,Year<2026),
+             aes(fill = atu.d,label = atu,x=Year,y = spawnDay)) +
+      geom_tile(alpha=0.8) +
+      geom_text(color='black',size=3) +
+      ylab('Spawn Day') +
+      theme(axis.title.x=element_blank(),
+            strip.text.y = element_text(angle = 0),
+            legend.position ='none',
+            axis.text.x=element_text(angle=45,hjust=1)) #+
+    AnnStlEmerge
+    ggsave(plot=AnnStlEmerge,device = 'png',width=3.5,height=1.5,
+           filename = file.path(RdataDir,paste(SaveName,sbnm,'StlEmergeTab.png',sep = '_')))
+
+    DatSums[['StlhdEggEmrg']] <-
+      DatSums[['StlhdEggEmrg']] |>
+      mutate(Year = as.factor(Year)) |>
+      pivot_wider(names_from = spawnDay,id_cols = c(name,Year),values_from = c('atu'))
+
+  }else{
+    DatSums[['StlhdEggEmrg']] <- OpsEggEmrg |>
+      filter(grepl('Steelhead',species),
+             grepl(paste0(tsites[grepl(sbsites,names(tsites))],collapse='|'),name))
+  }
+
+  DatSums[['ChnkEggEmrg']] <-
+    OpsEggEmrg |>
+    filter(grepl('Chinook',species),
+           grepl(paste0(tsites[grepl(sbsites,names(tsites))],collapse='|'),name))|>
+    mutate(spawnDay = as.factor(format(as.Date(spawnDay,origin = as.Date('2000-01-01')),'%m/%d')),
+           name = factor(gsub('.Temp-Water','',name),ordered=T,levels=gsub('.Temp-Water','',tsites))) |>
+    select(-nmiss,-species)
 
   # Estimated Emergence
   AnnChnEmerge <-
-    ggplot(OpsEggEmrg |>
-             filter(grepl('Chinook',species),Year>2020,Year<2026,
-                    grepl(sbsites,name))|>
-             mutate(Year = as.factor(Year),
-                    spawnDay = as.factor(format(as.Date(spawnDay,origin = as.Date('2000-01-01')),'%m/%d')),
-                    name = factor(gsub('.Temp-Water','',name),ordered=T,levels=TSites)),
+    ggplot(DatSums[['ChnkEggEmrg']] |>
+             filter(Year>2020,Year<2026),
            aes(fill = atu.d,label = atu,x=Year,y = spawnDay)) +
     geom_tile(alpha=0.8) +
     geom_text(color='black',size=3) +
-    #scale_y_discrete(limits=rev) +
-    #facet_grid(spawnDay~.,scales='free') +
+    facet_grid(name~.,scales='free') +
     ylab('Spawn Day') +
     theme(axis.title.x=element_blank(),
           strip.text.y = element_text(angle = 0),
           legend.position ='none',
           axis.text.x=element_text(angle=45,hjust=1)) #+
-    #ggtitle(paste('Estimated Chinook Egg Emergence at',unique(TexcSub$name)))
   AnnChnEmerge
-  ggsave(plot=AnnChnEmerge,device = 'png',width=3.5,height=1.5,
+  ggsave(plot=AnnChnEmerge,device = 'png',width=wd,height=1.5,
          filename = file.path(RdataDir,paste(SaveName,sbnm,'ChEmergeTab.png',sep = '_')))
 
-  # Steelhead egg emergence
-  # # Need to remove FALO and add SSFO for Steelhead
-  AnnStlEmerge <-
-    ggplot(OpsEggEmrg |>
-             filter(grepl('Steelhead',species),!grepl('FALO',name),
-                    Year>2020,Year<2026,
-                    grepl(sbsites,name))|>
-             mutate(Year = as.factor(Year),
-                    spawnDay = as.factor(format(as.Date(spawnDay,origin = as.Date('2000-01-01')),'%m/%d')),
-                    name = factor(gsub('.Temp-Water','',name),ordered=T,levels=TSites)),
-           aes(fill = atu.d,label = atu,x=Year,y = spawnDay)) +
-    geom_tile(alpha=0.8) +
-    geom_text(color='black',size=3) +
-    #scale_y_discrete(limits=rev) +
-    #facet_grid(spawnDay~.,scales='free') +
-    ylab('Spawn Day') +
-    theme(axis.title.x=element_blank(),
-          strip.text.y = element_text(angle = 0),
-          legend.position ='none',
-          axis.text.x=element_text(angle=45,hjust=1)) #+
-    #ggtitle('Estimated Steelhead Egg Emergence')
-  AnnStlEmerge
-  ggsave(plot=AnnStlEmerge,device = 'png',width=3.5,height=1.5,
-         filename = file.path(RdataDir,paste(SaveName,sbnm,'StlEmergeTab.png',sep = '_')))
+  DatSums[['ChnkEggEmrg']] <- DatSums[['ChnkEggEmrg']] |>
+    mutate(Year = as.factor(Year)) |>
+    pivot_wider(names_from = spawnDay,id_cols = c(name,Year),values_from = c('atu'))
 
   # TDG Data
   # Where is GPRO, SSFO?
@@ -415,11 +437,14 @@ MultiYrQPlots <- function(SubBasinSites,SaveName){
       Year = as.numeric(as.character(Year))) |>
     dplyr::filter(grepl('TDG',name),
                   Year>2020,Year<2026,
-                  grepl(sbsites,name),
-                  grepl(paste0(TDGSites,collapse='|'),name)) |>
+                  #grepl('GPR|SSFO',name)) |>
+                  grepl(paste0(TDGsites[grepl(sbsites,names(TDGsites))],collapse='|'),name)) |>
     mutate(Month = factor(Month,levels = c(1:12,'Annual'),ordered=T),
            name = factor(gsub('.%-Saturation-TDG','',name)))
 
+  # OpsExc |>filter(grepl('SSFO',name)) |>mutate(name = as.factor(name)) |>summary() #,grepl('Sat',name)
+  # TDGexcSub |> summary()
+  # unique(OpsExc$name)
   # TDG!!!
   # Annual Excedence of values
   AnnTDGexctab <-
@@ -434,7 +459,7 @@ MultiYrQPlots <- function(SubBasinSites,SaveName){
     ylab('Ann. Days Above TDG [% Sat]') +
     theme(axis.title.x=element_blank(),
           strip.text.y = element_text(angle = 0),
-          legend.position ='right',
+          legend.position ='none',
           axis.text.x=element_text(angle=45,hjust=1)) #+
   AnnTDGexctab
   ggsave(plot=AnnTDGexctab,device = 'png',width=3,height=3,
@@ -461,8 +486,9 @@ MultiYrQPlots <- function(SubBasinSites,SaveName){
   ggsave(plot=MonTDGexctab,device = 'png',width=7,height=3,
          filename = file.path(RdataDir,paste(SaveName,sbnm,'MonTDGexcPoints.png',sep = '_')))
 
-  DatSums[['OpsEggEmrg']] <- OpsEggEmrg
-  DatSums[['TDGexc']] <-  TDGexcSub
+  # DatSums[['OpsChnkEggEmrg']]
+  # DatSums[['OpsStlhdEggEmrg']]
+   DatSums[['TDGexc']] <-  TDGexcSub
   # Gate Openings
   return(DatSums)
 

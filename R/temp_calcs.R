@@ -214,7 +214,7 @@ calcThreshMon <- function(DataType,TVals){
 
   # TDG: Calculate time daily max is above threshold
   if(any(grepl('TDG',DataType))){
-    if(!any(grepl(Proj,TDGSites))){
+    if(!any(grepl(Proj,names(TDGsites)))){
       print(paste0('No Data Paths with ',DataType,'. Skipping any threshold analysis.'))
       return(NULL)
     }

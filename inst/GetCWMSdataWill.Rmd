@@ -61,7 +61,7 @@ cnfg = jsonlite::fromJSON(file.path(LocalWd,"inst","WillCWMSTempTDGConfig.json")
 # Declare if only specific CWMS paths are to be read, declare them here.
 # SpecificCWMSpaths <- 'FBWSELVRule'
 # SpecificCWMSpaths <- 'GDACS_Gates'
-#SpecificCWMSpaths <- c("TDGdwnStrmPath")
+# SpecificCWMSpaths <- c("TDGdwnStrmPath")
 
 # Setup path to previous Rdata files. 
 # If none, declare NA and a new directory will be created
@@ -128,6 +128,15 @@ for(i in whichProj){
   cnfg[[i]][['edate']] <- edate
 }
 
+tsites <- data.frame(BCL = 'BCLO',CGR = 'CGRO',FOS = 'SSFO',FAL = 'FALO',DEX = 'DEXO',HCR = 'HCRO')
+tsites[1,] <- paste0(tsites[1,],'.Temp-Water')
+TDGsites <- data.frame(DET = 'DET',BCL = 'BCLO',
+                       GPR = 'GPRO',FOS = 'SSFO',
+                       CGR = 'CGRO',
+                       HCR = 'HCRO',FAL = 'FALO',LOP = 'LPQO',DEX = 'DEXO')
+TDGsites[1,] <- paste0(TDGsites[1,],'.%-Saturation-TDG')
+
+
 ```
 
 ## Get data for each project
@@ -165,9 +174,6 @@ for(i in whichProj){
 
 ```{r CleanAndProcessRawData}
 
-tsites <- data.frame(BCL = 'BCLO',CGR = 'CGRO',FOS = 'SSFO',FAL = 'FALO',DEX = 'DEXO',HCR = 'HCRO')
-tsites[1,] <- paste0(tsites[1,],'.Temp-Water')#,collapse='|')
-TDGSites <- c('DET','BCLO','GPRO','SSFO','CGRO','HCRO','LPQO','DEXO') #'BCL','CGR',
 appendProcessed <- T # If you want to use the calculated and processed data instead of re-processing (can take a while) prior to metric calcs 
 
 for(i in whichProj){
@@ -193,7 +199,7 @@ for(i in whichProj){
   rm(xlmExc,xlmExcL)
 
   if(any(grepl(Proj,names(tsites))) |
-     any(grepl(Proj,TDGSites))){
+     any(grepl(Proj,names(TDGsites)))){
     # Calculate days of exceedance for Temperature variables
     # Check for temperature data and sites of interest
     source(file.path(LocalWd,'R','temp_calcs.r'))
@@ -215,7 +221,7 @@ for(i in whichProj){
       # Estimate Emergence for spring chinook (spawning in fall)
       source(file.path(LocalWd,'R','temp_calcs.r'))
       xlaChnkEggEmrg <- EstimateEmergence(xld,
-                        spawnDay = c(244,263,274),
+                        spawnDay = c(244,263,288),
                         hatchValue = 1750
                         )
       if(any(grepl(Proj,c('BCL','FOS')))){
@@ -376,31 +382,64 @@ names(clrs) <- c(2021:2025)
 sb <- levels(qgtConfig$SubBasins$SubBasin)
 PlotDataList <- as.list(sb)
 source(file.path(LocalWd,'R','AnnMetricPlotting.r'))
- # Left off line 286 with GPR/FOS
+SaveName = '2025Ops'
+	# • Nick to send list of numbers for reporting
+	# • Add hollow box and add size for time within band
+	# • Re-do ndays within temp bands with biological bands
+#  Multiple panes per year for biological bands
+for(i in 1:length(sb)){
+    # Left off here, problem with names for MFWill with i = 4 , line 366
 
-for(i in 1:nlevels(qgtConfig$SubBasins$SubBasin)){
   PlotDataList[[i]] <-  MultiYrQPlots(
     SubBasinSites = qgtConfig$SubBasins[grep(sb[i],qgtConfig$SubBasins$SubBasin),],
-    SaveName = '2025Ops')
+    SaveName = SaveName)
     
 }
-# Flow Metrics
-OpsExc
 
-
-# Iterate through Rdata files and merge into one large file (xw, xwd,xwdSum,xAnn variables)
-oldDataFileName <- 'DET_HistoricOpsTemp2000-2025.Rdata'
-newDataFileName <- paste0('_HistOpsWQ',format(bdate,'%Y'),'-',format(edate,'%Y'),'.Rdata')
-if(!file.exists(file.path(RdataDir,newDataFileName))){
-    merge_tibbles_from_rdata(oldDataFileName,newDataFileName)
-  }
-load(file.path(RdataDir,newDataFileName))
-
-
-MakeMultiYrPlots()
+names(PlotDataList) <- sb
+PlotData <- as.data.frame(do.call(rbind, PlotDataList))
 
 
 ```
+
+Write a spreadsheet with data metrics
+
+```{r WriteXLS}
+library(openxlsx)
+
+OpsEggEmrg
+
+WTxlsxList1 <- WTxlsxList2 <- list()
+
+WTxlsxList1$OpsEggEmrg = OpsEggEmrg |>
+      mutate(spawnDay = as.factor(format(as.Date(spawnDay,origin = as.Date('2000-01-01')),'%m/%d')),
+             name = factor(gsub('.Temp-Water','',name),ordered=T,levels=gsub('.Temp-Water','',tsites))) |>
+      select(-nmiss) |>
+      pivot_wider(names_from = spawnDay,id_cols = c(name,Year,species),values_from = c('atu'))
+
+WTxlsxList1$OpsExc = OpsExc |>
+    mutate(
+      Month = factor(gsub("^0+", "", Month),levels = c(1:12,'Annual'),ordered=T),
+      name = gsub('.15Minutes|.3Hours|.6Hours','',name),
+      Year = as.numeric(as.character(Year))) |>
+    dplyr::filter(!grepl('Targ',name)) |>
+    mutate(Month = factor(Month,levels = c(1:12,'Annual'),ordered=T),
+           name = as.factor(name))
+
+WTxlsxList1$OpsStats = OpsStats |>
+    mutate(Month = factor(Month,levels = c(1:12,'Annual'),ordered=T),
+           name = gsub('.0|.1Day|.COORD_Fisheries_|.USACE_Temporary_|.NMFS_USFWS_ODFW_| ','',
+                       gsub('.Fisheries ','.',name)),
+           Year = as.numeric(Year)) 
+
+openxlsx::write.xlsx(WTxlsxList1,
+                     file = file.path(RdataDir,paste(SaveName,'AllMetrics.xlsx',sep = '_')),
+                     asTable = TRUE,overwrite = T,append=T)
+
+
+
+```
+
 
 ```{r FishData}
 
