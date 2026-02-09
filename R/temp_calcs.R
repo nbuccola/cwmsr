@@ -81,6 +81,55 @@ calc7dadm <- function(xld){
 
 
 
+#' Reformat and replicate Fish criteria so it spans a larger timeframe
+#'
+#' @param FishCrit A table of fish criteria with begin/end dates and thresholds
+#' @description Reformat and replicate Fish criteria so it spans a larger timeframe
+#' @return Long table with Date, name of target, threshold, value
+#' @importFrom dplyr
+#' @export
+#'
+ReformatFishCrit <- function(FishCrit){
+  # Replicate and update dates for FishCriteria
+  # Keep the original year's data as the base
+  FishCrit00 <- FishCrit |>
+    rename(name = criteria) |>
+    select(-color) |>
+    mutate(acuteL = as.character(acute),
+           chronicL = as.character(chronic)) |>
+    pivot_longer(cols=c(acuteL,chronicL),names_to = 'name2') |>
+    mutate(name = paste0(name,'_',gsub('L','',name2)),
+           start = as.Date(start),finish = as.Date(finish)) |>
+    select(-c(name2,acute,chronic)) |>
+    mutate(day_diff = as.integer(finish - start) + 1) %>%
+    uncount(day_diff) %>%
+    group_by(name, start, finish) %>%
+    mutate(Date = start + row_number() - 1) %>%
+    ungroup() |>
+    select(-c(start,finish)) |>
+    mutate(value = as.numeric(value))
+
+  yrsu<-as.numeric(unique(c(format(bdate,'%Y'),format(edate,'%Y'))))
+
+  replicated_FishCrit <- bind_rows(
+    FishCrit00,
+    # Replicate for target years
+    purrr::map_dfr(yrsu[1]:yrsu[2], function(year_to_add) {
+      FishCrit00 %>%
+        mutate(
+          # Add the difference in years to the date column
+          Date = Date + years(year_to_add - year(first(FishCrit00$Date))),
+        )
+    })
+  ) %>%
+    # Arrange by date to ensure correct order
+    arrange(Date) |>
+    mutate(Year = format(Date,'%Y'),
+           Month = format(Date,'%m'))
+
+  return(replicated_FishCrit)
+}
+
 
 #' Tabulate the exceedance values by month for each CWMS data path
 #'
@@ -100,6 +149,7 @@ calcThreshMon <- function(DataType,TVals){
     return(NULL)
   }
   dTypNms <- paste(unique(xld$name)[dTypNms], collapse = "|")
+  idcols <- c('name','Year','Month','TValsNum')
 
   # Calculate monthly exceedences
   # Setup a subset tibbles to run calcs on.
@@ -119,12 +169,13 @@ calcThreshMon <- function(DataType,TVals){
 
     TNms <- paste0('Exc',gsub('Path','',TVals))
     TValsNum <- as.numeric(TVals)[!is.na(as.numeric(TVals))]
+
     xlmExc <- xlmExcSub |>
           expand_grid(TValsNum) |>
           arrange(name, Date) |>
           mutate(Month = as.factor(Month),Year = as.factor(Year)) |>
           group_by(name,Month,Year,TValsNum) |>
-          reframe(
+            reframe(
             Dys7dADMExc = length(which(adm7d >TValsNum)),#Use the 7dADM data
             PrcDys7dADMExc = length(which(adm7d >TValsNum)) /  length(adm7d),#Use the 7dADM data
             DysMaxExc = length(which(Max >TValsNum)),
@@ -159,7 +210,7 @@ calcThreshMon <- function(DataType,TVals){
       TempCompSite <- unique(xlmExcSub$name)[grepl(TempCompSite,unique(xlmExcSub$name)) &
                                                !grepl('Targ',unique(xlmExcSub$name)) ]
 
-      # NEed to replicate 2025, since years prior to that don't seem to be in CWMS
+      # NEed to replicate 2025 temp target data, since years prior to that don't seem to be in CWMS
       ttarg25 <- xlmExcSub |>
         dplyr::filter(grepl('Targ',name)) |>
         ungroup() |>
@@ -182,34 +233,52 @@ calcThreshMon <- function(DataType,TVals){
       ) %>%
         # Arrange by date to ensure correct order
       arrange(Date) |>
-        mutate(Year = format(Date,'%Y'),Month = format(Date,'%m'))
+      mutate(Year = format(Date,'%Y'),Month = format(Date,'%m'),
+             threshold = gsub('MinTarg','lower',gsub('MaxTarg','upper',name)),
+             name = 'OpsTarget')
+
 
       xlmExcTarg <-
-        bind_rows(
-          replicated_ttarg25,
+        FishCrit_ts |>
+        full_join(replicated_ttarg25) |>
+        full_join(
           xlmExcSub |>
             dplyr::filter(grepl(!!TempCompSite,name) & !grepl('Targ',name)) |>
             dplyr::select(-c(Min,Median,Mean,Max)) |>
-            rename(value = adm7d)
+            rename(value = adm7d) |>
+            pivot_wider()
           ) |>
-        mutate(name = as.factor(name)) |>
-        pivot_wider(values_fn = mean) |>
-        mutate(Month = as.factor(Month),Year = as.factor(Year)) |>
+        mutate(Month = as.factor(Month),
+               Year = as.factor(Year),
+               threshold = as.factor(threshold),
+               name = as.factor(name)) |>
+        distinct() |>
+        pivot_wider(names_from = threshold,values_fn = mean) |>
         arrange(Date) |>
-        group_by(Month,Year) |>
-        reframe(
-                Dys7dADMExcMaxTarg = length(which(!!sym(TempCompSite) > MaxTarg)),
-                PrcDys7dADMExcMaxTarg = Dys7dADMExcMaxTarg /  length(MaxTarg),
-                Dys7dADMBlwMinTarg = length(which(!!sym(TempCompSite) < MinTarg)),
-                PrcDys7dADMBlwMinTarg = Dys7dADMBlwMinTarg /  length(MinTarg),
-                Dys7dADMBtwnTargs = length(MinTarg) - (Dys7dADMExcMaxTarg + Dys7dADMBlwMinTarg),
-                PrcDys7dADMBtwnTargs = Dys7dADMBtwnTargs /  length(MinTarg)
+        group_by(Month,Year,name) |>
+        reframe(TargMin = lower,TargMax = upper,
+                Dys7dADMAbv = length(which(!!sym(TempCompSite) > upper)),
+                Dys7dADMBlw = length(which(!!sym(TempCompSite) < lower)),
+                Dys7dADMBtwn = length(na.omit(!!sym(TempCompSite))) - (Dys7dADMAbv + Dys7dADMBlw)
         ) |>
-        mutate(name = !!TempCompSite,TValsNum='ExcTTarg')
+        rename(Target = name) |>
+        mutate(name = !!TempCompSite) |>
+        filter(!is.na(Target)) |>
+        distinct()
+        # print(n=300)
+        # summary()
         # Merge with xlmExc
         xlmExc <- xlmExc |>
-          full_join(xlmExcTarg)
-     }
+          full_join(xlmExcTarg) |>
+          mutate(Target =
+                   factor(Target,levels = c("OpsTarget",
+                                            "Migration_acute","Migration_chronic",
+                                            "Holding_acute","Holding_chronic",
+                                            "Spawning_acute","Spawning_chronic",
+                                            "Incubation_acute","Incubation_chronic"),
+                               ordered=T))
+        idcols <- c(idcols,c('Target','TargMin','TargMax'))
+     } # End Exceedence of targets work
   }
 
   # TDG: Calculate time daily max is above threshold
@@ -297,7 +366,7 @@ calcThreshMon <- function(DataType,TVals){
   if(exists('xlmExc')){
     # Reformat the monthly exceedences to match xla exceedences
     xlmExc <- xlmExc |>
-      pivot_longer(cols = -c('name','Year','Month','TValsNum'),names_to = "ExcType") |>
+      pivot_longer(cols = -all_of(idcols),names_to = "ExcType") |>
       mutate(ExcType2 = if_else(grepl('Prc',ExcType),'PrcExc','Exc'),
              ExcType = gsub('Prc','',ExcType)) |>
       pivot_wider(names_from = 'ExcType2')|>
@@ -306,6 +375,104 @@ calcThreshMon <- function(DataType,TVals){
     return(NULL)
   }
   return(xlmExc)
+}
+
+
+#' Tabulate dates in which a threshold is exceeded
+#'
+#' @param DataType character; column of data to evaluate
+#' @param TVals numeric; Threshold values in which to tabulate exceedence
+#' @description Tabulate dates in which a threshold is exceeded
+#' @return data.frame with name, begin date, end date, and max value
+#' @importFrom dplyr
+#' @export
+#'
+CalcDatesOfExc <- function(DataType,TVals){
+  rm(xlExcDts)
+  dTypNms <- grepl(paste0(DataType,collapse = '|'),unique(xld$name)) &
+    !grepl('_S1|Targ',unique(xld$name))
+  if(!any(dTypNms)){
+    print(paste0('No Data Paths with ',DataType,'. Skipping any threshold analysis.'))
+    return(NULL)
+  }
+  dTypNms <- paste(unique(xld$name)[dTypNms], collapse = "|")
+
+  # Calculate monthly exceedences
+  # Setup a subset tibbles to run calcs on.
+  xlmExcSub <- xld |>
+    dplyr::filter(str_detect(name,dTypNms)) |>
+    mutate(Month = format(Date,'%m'),Year = format(Date,'%Y')) |>
+    group_by(Year,Month,name)
+
+  print(DataType)
+
+  TNms <- paste0('Exc',gsub('Path','',TVals))
+  TValsNum <- as.numeric(TVals)[!is.na(as.numeric(TVals))]
+  xlmExcSub<- xlmExcSub |>
+    expand_grid(TValsNum) |>
+    arrange(name, Date) |>
+    mutate(Month = as.factor(Month),Year = as.factor(Year),
+           threshold = 'upper')
+
+  if(any(grepl('FishCrit',TVals))){
+    # Not implemented yet...
+    xlmExcSub<- xlmExcSub |>
+      full_join(FishCrit_ts |>
+                  rename(TValsNum = value))
+
+
+    # xlmExcSub |>
+    #   dplyr::select(-c(Min,Median,Mean,Max)) |>
+    #   rename(value = !!sym(DataType)) |>
+    #   pivot_wider() |>
+    #   mutate(Month = as.factor(Month),
+    #          Year = as.factor(Year),
+    #          threshold = as.factor(threshold),
+    #          name = as.factor(name)) |>
+    #   distinct() |>
+    #   pivot_wider(names_from = threshold,values_fn = mean) |>
+    #   arrange(Date) |>
+    #   group_by(Month,Year,name) |>
+    #   reframe(TargMin = lower,TargMax = upper,
+    #           Dys7dADMAbv = length(which(!!sym(TempCompSite) > upper)),
+    #           Dys7dADMBlw = length(which(!!sym(TempCompSite) < lower)),
+    #           Dys7dADMBtwn = length(na.omit(!!sym(TempCompSite))) - (Dys7dADMAbv + Dys7dADMBlw)
+    #   ) |>
+    #   rename(Target = name) |>
+    #   mutate(name = !!TempCompSite) |>
+    #   filter(!is.na(Target)) |>
+    #   distinct()
+    #
+  }
+
+
+  DatesOfExc <- function(x,DataCol){
+    # Tabulate the date range and max value for each exceedence period
+    # Add unique ID to each exceedence period
+    x
+    xlmExcSub |>
+      group_by(name,TValsNum) |>
+      reframe(
+        Date = Date,
+        value = !!sym(DataCol),
+        ExcLgcl = if_else(value > TValsNum,T,F),
+        ExcID = as.factor(consecutive_id(ExcLgcl)),
+        TValsNum = as.factor(TValsNum)
+      ) |>
+      group_by(name,TValsNum,ExcID) |>
+      reframe(
+        ExcIDstrt = first(Date[ExcLgcl]),
+        ExcIDend = last(Date[ExcLgcl]),
+        ExcMeanVal = mean(if_else(!is.finite(value)|!ExcLgcl,NA,value)),
+        ExcMaxVal = max(if_else(!is.finite(value)|!ExcLgcl,NA,value))
+      ) |>
+      filter(!is.na(ExcIDend)) |>
+      select(-ExcID)
+  }
+
+  xlExcDts <-DatesOfExc(xlmExcSub,'adm7d')
+  return(xlExcDts)
+
 }
 
 #' Tabulate the exceedance values by year for each CWMS data path
@@ -320,13 +487,22 @@ calcThreshAnn <- function(xlmExc,months=1:12){
   # Tabulate monthly values into annual values
   xlaExc <- xlmExc |>
     dplyr::select(-starts_with('Prc')) |>
-    #pivot_longer(cols = -c('name','Year','Month','TValsNum'),names_to = "ExcType") |>
-    filter(grepl(paste0(months,collapse='|'),as.character(as.numeric(Month)))) |>
-    group_by(name,Year,ExcType,TValsNum) |>
-    reframe(Exc = sum(if_else(!is.finite(Exc),NA,Exc)), #,na.rm = T
-            PrcExc = Exc/365) |>
-    mutate(ExcType = as.factor(ExcType))
-
+    filter(grepl(paste0(months,collapse='|'),as.character(as.numeric(Month))))
+  if(any(grepl('Targ',colnames(xlmExc)))){
+    xlaExc <- xlaExc |>
+      group_by(name,Year,ExcType,TValsNum,Target) |>
+      reframe(
+        TargMin = TargMin,TargMax = TargMax,
+        Exc = sum(if_else(!is.finite(Exc),NA,Exc)),
+        PrcExc = Exc/365) |>
+      mutate(ExcType = as.factor(ExcType))
+  }else{
+    xlaExc <- xlaExc |>
+      group_by(name,Year,ExcType,TValsNum) |>
+      reframe(Exc = sum(if_else(!is.finite(Exc),NA,Exc)),
+              PrcExc = Exc/365) |>
+      mutate(ExcType = as.factor(ExcType))
+  }
   return(xlaExc)
 }
 
@@ -474,7 +650,3 @@ calcEmergenceTiming<-function(tout,
   atu.d<-as.data.frame(t(round(as.numeric(atu.d))),stringsAsFactors=F)
   return(data.frame(atu=as.character(atu),atu.d=as.numeric(atu.d),nmiss = nmiss))
 }
-
-# Plot emergence days
-#   spawndaysMD <- format(as.Date(spawnDay,origin = as.Date('1999-12-31')),'%m/%d')
-

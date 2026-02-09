@@ -19,6 +19,14 @@ c2f <-function(x){x*(9/5)+32} # convert to F
 #'
 f2c <-function(x){(x-32)*(5/9)} # convert to C
 
+cmin <- function(x) {
+  if (all(is.na(x))) NA_real_ else min(x, na.rm = TRUE)
+}
+
+cmax <- function(x) {
+  if (all(is.na(x))) NA_real_ else max(x, na.rm = TRUE)
+}
+
 
 #' Get CWMS data from json config file path names
 #'
@@ -231,13 +239,13 @@ pathSummary <- function(x){
             MaxDate = max(as.Date(Date[!is.na(Median)])),
             N = length(Median[!is.na(Median)]),
             Mean = mean(Median[!is.na(Median)]),
-            Min = min(Median[!is.na(Median)]),
+            Min = cmin(Median[!is.na(Median)]),
             Q05 = quantile(Median[!is.na(Median)],0.05),
             Q25 = quantile(Median[!is.na(Median)],0.25),
             Q50 = quantile(Median[!is.na(Median)],0.5),
             Q75 = quantile(Median[!is.na(Median)],0.75),
             Q95 = quantile(Median[!is.na(Median)],0.95),
-            Max = max(Median[!is.na(Median)]),
+            Max = cmax(Median[!is.na(Median)]),
             PrcComp = round(100*length(which(!is.na(Median)))/length(Median)))
 }
 
@@ -264,10 +272,11 @@ calcDailyMonthlyAnn <- function(){
   xld <- xl |>
     dplyr::select(-DateTime) |> #,-matches('_S1-D')   # If you want to leave out Temp string data for daily data
     group_by(Date,name) |>
-    reframe(Min = min(value,na.rm=T),
+    reframe(Min = cmin(value),
             Median = median(value,na.rm=T),
             Mean = mean(value,na.rm=T),
-            Max = max(value,na.rm=T)) |>
+            Max = cmax(value)
+            ) |>
     mutate(name = as.factor(name))
 
   print('Calculating Monthly Values')
@@ -275,7 +284,7 @@ calcDailyMonthlyAnn <- function(){
   xlm <- xl |>
     mutate(Month = format(Date,'%m'),Year = format(Date,'%Y')) |>
     group_by(Year,Month,name) |>
-    reframe(Min = min(value[!is.na(value)]),
+    reframe(Min = cmin(value[!is.na(value)]),
             Mean = mean(value[!is.na(value)]),
             Median = median(value[!is.na(value)]),
             Q05 = quantile(value[!is.na(value)],0.05),
@@ -283,7 +292,7 @@ calcDailyMonthlyAnn <- function(){
             Q50 = quantile(value[!is.na(value)],0.5),
             Q75 = quantile(value[!is.na(value)],0.75),
             Q95 = quantile(value[!is.na(value)],0.95),
-            Max = max(value[!is.na(value)]),
+            Max = cmax(value[!is.na(value)]),
             PrcComp = round(100*length(which(!is.na(value)))/length(value))) |>
     mutate(Month = as.numeric(Month),Year = as.numeric(Year))
 
@@ -294,7 +303,7 @@ calcDailyMonthlyAnn <- function(){
     dplyr::select(-DateTime) |>
     group_by(Year,name) |>
     reframe(N = length(value[!is.na(value)]),
-            Min = min(value[!is.na(value)]),
+            Min = cmin(value[!is.na(value)]),
             Mean = mean(value[!is.na(value)]),
             Median = median(value[!is.na(value)]),
             Q05 = quantile(value[!is.na(value)],0.05),
@@ -302,7 +311,7 @@ calcDailyMonthlyAnn <- function(){
             Q50 = quantile(value[!is.na(value)],0.5),
             Q75 = quantile(value[!is.na(value)],0.75),
             Q95 = quantile(value[!is.na(value)],0.95),
-            Max = max(value[!is.na(value)]),
+            Max = cmax(value[!is.na(value)]),
             PrcComp = round(100*length(which(!is.na(value)))/length(value))) |>
   mutate(Year = as.factor(Year),name = as.factor(name))
 

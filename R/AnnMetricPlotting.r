@@ -121,8 +121,7 @@ MultiYrQPlots <- function(SubBasinSites,SaveName){
     mutate(name = gsub('.Elev|.0','',name)) |>
     separate_wider_delim(name,delim='-',names = c('name','param')) |>
     mutate(name = factor(name,ordered=T,levels=SubBasinSites$Proj),
-           param = as.factor(param)) |>
-    filter(Month == '6',!grepl('Rule',param))
+           param = as.factor(param))
 
   outs <- unlist(qgtConfig[['CenterElvs']])
   excEl <- unlist(qgtConfig[['ExcElev']])
@@ -140,42 +139,21 @@ MultiYrQPlots <- function(SubBasinSites,SaveName){
       Year = as.character(min(WsSub$Year)),
       name = factor(name,ordered=T,levels=SubBasinSites$Proj))
 
-  # DatSums[['WsSub']] <- WsSub
-  #
-  # # June WSELV Max Plot
-  # AnnWStab <-
-  #   ggplot(WsSub |>
-  #            mutate(Year = as.factor(Year)),
-  #          aes(y = Max,x=Year,colour = Year,group = Year)) +
-  #   geom_point(alpha=0.8) +
-  #   facet_wrap(~name,scales='free') +
-  #   scale_colour_manual(values = clrs) +
-  #   ylab('June Max Water Surface Elevation [ft] by Year') +
-  #   geom_hline(data = excEl.df,aes(yintercept = CritElev)) +
-  #   geom_text(data = excEl.df,aes(y = CritElev,x = Year,label = CritElevName),vjust = -0.5,hjust =0.1) +
-  #   theme(axis.title.x=element_blank(),
-  #         strip.text.y = element_text(angle = 0),
-  #         legend.position ='none',
-  #         axis.text.x=element_text(angle=45,hjust=1))
-  # AnnWStab
-  # ggsave(plot=AnnWStab,device = 'png',width=7,height=5,
-  #        filename = file.path(RdataDir,paste0(SaveName,'WSELVJuneMaxDots.png')))
+  DatSums[['WsSub']] <- WsSub
 
-  # Prep figs for days above water control structure
+   # Prep figs for days above water control structure
   WsExcSub <- OpsExc |>
     mutate(Month = factor(gsub("^0+", "", Month),levels = c(1:12,'Annual'),ordered=T),
            name = gsub('.15Minutes|.3Hours|.6Hours','',name),
            Year = as.numeric(as.character(Year))) |>
     dplyr::filter(grepl('WTempCon',ExcType),Year>2020,Year<2026) |>
-  #   mutate(name = as.factor(name)) |>
-  #   summary()
-  # filter(grepl('LOP',name))
     filter(grepl(sbsites,name)) |>
     mutate(name = gsub('-Forebay|.Elev|.0','',name)) |>
     mutate(name = factor(name,ordered=T,levels=SubBasinSites$Proj)) |>
     rename(param = ExcType) |>
     select(Year,Month,name,param,Exc) |>
     full_join(WsSub |>
+                filter(Month == '6',!grepl('Rule',param)) |>
                 select(Year,Month,name,Max) |>
                 rename(Exc = Max) |>
                 mutate(param = 'JuneMaxWS')|>
@@ -288,13 +266,60 @@ MultiYrQPlots <- function(SubBasinSites,SaveName){
 
   DatSums[['Texc']] <-  TexcSub
 
+  # Monthly Days where 7dADM is above, below, Between Ops Temp Target
+  MonT7dADMexctab <-
+    ggplot( TexcSub |>
+              filter(
+                !grepl('Ann',Month),
+                grepl('Targ',Target),
+                grepl('Abv|Blw|Btwn',ExcType),
+                !is.na(Exc)) |>
+              mutate(Year = as.factor(Year),
+                     Exc = if_else(Exc==0,NA,Exc),
+                     ExcType = gsub('Dys7dADMBtwn','Between',gsub('Dys7dADMAbv','Above',gsub('Dys7dADMBlw','Below',ExcType))),
+                     ExcType = factor(ExcType,levels = c('Above','Between','Below'),ordered=T)),
+            aes(y = Exc,x=Month,colour = ExcType,shape = ExcType,fill = ExcType,group = Year)) +
+    geom_point(alpha=0.8) +
+    scale_shape_manual(name = '',values = c(24,0,25)) +
+    facet_grid(Year~name,scales='free') +
+    scale_x_discrete(labels = AllMonthLabs) +
+    scale_color_manual(name = '',values = c("Below" = "Cornflower Blue","Between"='black', "Above" = "orange")) +
+    scale_fill_manual(name = '',values = c("Below" = "Cornflower Blue", "Between"=NA,"Above" = "orange")) +
+    ylab(paste('Days per Month Above,Within,Below Target')) +
+    theme(strip.text.y = element_text(angle = 90),
+          legend.position ='top',
+          legend.title = element_blank(),
+          axis.text.x=element_text(angle=45,hjust=1)) #+
+  MonT7dADMexctab
+  ggsave(plot=MonT7dADMexctab,device = 'png',width=wd,height=5,
+         filename = file.path(RdataDir,paste(SaveName,sbnm,'MonTTargAbvBlwArrows.png',sep = '_')))
+
+  # Monthly Days where 7dADM is above, below, within Biologic Thresholds
+  BioTarg_names <- as.character(unique(TexcSub$name))
+  names(BioTarg_names) <- as.character(unique(TexcSub$name))
+  BioTarg_names <- c(BioTarg_names,
+    "OpsTarget"="OpsTarget",
+    "Migration_acute" =  paste(FishCrit$criteria[1],'>',FishCrit$acute[1]),
+    "Migration_chronic"  =  paste(FishCrit$criteria[1],'>',FishCrit$chronic[1]),
+    "Holding_acute"  =  paste(FishCrit$criteria[2],'<',FishCrit$acute[2]),
+    "Holding_chronic" =  paste(FishCrit$criteria[2],'<',FishCrit$chronic[2]),
+    "Spawning_acute" =  paste(FishCrit$criteria[3],'<',FishCrit$acute[3]),
+    "Spawning_chronic"   =  paste(FishCrit$criteria[3],'<',FishCrit$chronic[3]),
+    "Incubation_acute"   =  paste(FishCrit$criteria[4],'<',FishCrit$acute[4]),
+    "Incubation_chronic" =  paste(FishCrit$criteria[4],'<',FishCrit$chronic[4])
+  )
+
   # Annual Excedence of values
   AnnTexctab <-
     ggplot( TexcSub |>
-             filter(grepl('Ann',Month),!grepl('Targ',ExcType),!is.na(Exc)) |>
-             mutate(Year = as.factor(Year),
-                    TValsNum = factor(TValsNum,levels = unique(TValsNum))),
-           aes(y = TValsNum,x=Year,label = Exc,colour = Exc,fill = Exc,group = Year)) + #shape = TValsNum,
+              filter(grepl('Ann',Month),
+                     grepl('Exc',ExcType),
+                     grepl('Targ',Target),
+                     !is.na(Exc)) |>
+              mutate(Year = as.factor(Year),
+                     TValsNum = factor(TValsNum,levels = unique(TValsNum))),# |>
+            #summary(),
+            aes(y = TValsNum,x=Year,label = Exc,colour = Exc,fill = Exc,group = Year)) + #shape = TValsNum,
     geom_tile(alpha=0.8) +
     geom_text(color='black',size=3) +
     facet_grid(~name) +
@@ -303,38 +328,70 @@ MultiYrQPlots <- function(SubBasinSites,SaveName){
           strip.text.y = element_text(angle = 0),
           legend.position ='none',
           axis.text.x=element_text(angle=45,hjust=1)) #+
-    AnnTexctab
+  AnnTexctab
   ggsave(plot=AnnTexctab,device = 'png',width=wd,height=3,
          filename = file.path(RdataDir,paste(SaveName,sbnm,'AnnTexcTab.png',sep = '_')))
 
-
-  # Monthly Excedence of 7dADM
-  MonT7dADMexctab <-
+  AnnT7dADMexcBio <-
     ggplot( TexcSub |>
               filter(
-                !grepl('Ann',Month),
-                grepl('Max|Min|Btwn',ExcType),
+                grepl('Ann',Month),
+                grepl('Btwn',ExcType),
+                !grepl('Targ|Migration_chronic',Target),
                 !is.na(Exc)) |>
+              #summary()
               mutate(Year = as.factor(Year),
-                     Exc = if_else(Exc==0,NA,Exc),
-                     ExcType = gsub('Dys7dADMBtwnTargs','Within',gsub('Dys7dADMExcMaxTarg','Above',gsub('Dys7dADMBlwMinTarg','Below',ExcType))),
+                     #Exc = if_else(Exc==0,NA,Exc),
+                     ExcType = gsub('Dys7dADMBtwn','Within',gsub('Dys7dADMAbv','Above',gsub('Dys7dADMBlw','Below',ExcType))),
                      ExcType = factor(ExcType,levels = c('Above','Within','Below'),ordered=T)),
-            aes(y = Exc,x=Month,colour = ExcType,shape = ExcType,fill = ExcType,group = Year)) +
-    geom_point(alpha=0.8) +
-    scale_shape_manual(name = '',values = c(24,0,25)) +
-    facet_grid(Year~name,scales='free') +
-    scale_x_discrete(labels = AllMonthLabs) +
-    scale_color_manual(name = '',values = c("Below" = "Cornflower Blue","Within"='black', "Above" = "orange")) +
-    scale_fill_manual(name = '',values = c("Below" = "Cornflower Blue", "Within"=NA,"Above" = "orange")) +
-    ylab(paste('Days per Month Above,Within,Below Target')) +
+            aes(y = Exc,x=Target,group = Year,colour = Year,fill = Year)) + #colour = ExcType,shape = ExcType,fill = ExcType
+    geom_point(alpha=0.8,shape = 0) +
+    facet_grid(name~.,scales='free') +
+    scale_colour_manual(values = c(clrs,Target = 'grey')) +
+    scale_fill_manual(values = c(clrs,Target = 'grey')) +
+    scale_x_discrete(labels = BioTarg_names) +
+    ylab(paste('Days Within Criteria')) +
+    xlab('') +
     theme(strip.text.y = element_text(angle = 90),
           legend.position ='top',
-          theme(legend.title = element_blank()),
+          legend.title = element_blank(),
           axis.text.x=element_text(angle=45,hjust=1)) #+
-    #ggtitle('Days per Month 7dADM is Above or Below Temperature Target')
-  MonT7dADMexctab
-  ggsave(plot=MonT7dADMexctab,device = 'png',width=wd,height=5,
-         filename = file.path(RdataDir,paste(SaveName,sbnm,'MonTTargAbvBlwArrows.png',sep = '_')))
+  AnnT7dADMexcBio
+  ggsave(plot=AnnT7dADMexcBio,device = 'png',width=4,height=3,
+         filename = file.path(RdataDir,paste(SaveName,sbnm,'AnnDaysWithinBioCrit.png',sep = '_')))
+
+  for(nm in unique(TexcSub$name)){
+    Tdat_nm <-  TexcSub |>
+      filter(
+        grepl(nm,name),
+        !grepl('Ann',Month),
+        grepl('Btwn',ExcType),
+        !grepl('Targ|Migration_chronic',Target),
+        !is.na(Exc)) |>
+      mutate(Year = as.factor(Year),
+             ExcType = gsub('Dys7dADMBtwn','Within',gsub('Dys7dADMAbv','Above',gsub('Dys7dADMBlw','Below',ExcType))),
+             ExcType = factor(ExcType,levels = c('Above','Within','Below'),ordered=T))
+    if(nrow(Tdat_nm)>0){
+      MonT7dADMexcBio <-
+        ggplot(Tdat_nm,
+                aes(y = Exc,x=Month,group = Year,colour = Year,fill = Year)) + #colour = ExcType,shape = ExcType,fill = ExcType
+        geom_point(shape = 0) +
+        facet_grid(Target~.,scales='fixed',labeller = as_labeller(BioTarg_names)) +
+        scale_colour_manual(values = c(clrs,Target = 'grey')) +
+        scale_x_discrete(labels = AllMonthLabs) +
+        scale_fill_manual(values = c(clrs,Target = 'grey')) +
+        ylab(paste('Days Within Criteria')) +
+        xlab('') +
+        theme(strip.text.y = element_text(angle = 0),
+              legend.position ='top',
+              legend.title = element_blank(),
+              axis.text.x=element_text(angle=45,hjust=1)) #+
+      MonT7dADMexcBio
+
+      ggsave(plot=MonT7dADMexcBio,device = 'png',width=4,height=4,
+             filename = file.path(RdataDir,paste(SaveName,sbnm,nm,'MonDaysWithinBioCrit.png',sep = '_')))
+    }
+  }
 
   # Annual Excedence of values
   # Why not a big exceedence at CGR in 2025
@@ -342,21 +399,23 @@ MultiYrQPlots <- function(SubBasinSites,SaveName){
     ggplot(TexcSub |>
              filter(
                grepl('Ann',Month),
-               grepl('Max|Min|Btwn',ExcType)) |>
+               grepl('Targ',Target),
+               grepl('Blw|Btwn|Abv',ExcType)) |>
              mutate(Year = as.factor(Year),
-                    ExcType = gsub('Dys7dADMBtwnTargs','Within',gsub('Dys7dADMExcMaxTarg','Above',gsub('Dys7dADMBlwMinTarg','Below',ExcType))),
-                    ExcType = factor(ExcType,levels = c('Above','Within','Below'),ordered=T)),
+                    Exc = if_else(Exc==0,NA,Exc),
+                    ExcType = gsub('Dys7dADMBtwn','Between',gsub('Dys7dADMAbv','Above',gsub('Dys7dADMBlw','Below',ExcType))),
+                    ExcType = factor(ExcType,levels = c('Above','Between','Below'),ordered=T)),
            aes(y = Exc,x=Year,colour = ExcType,shape = ExcType,fill = ExcType,group = Year)) +
     geom_point(alpha=0.8) +
     facet_grid(~name,scales='free') +
     scale_shape_manual(name = '',values = c(24,0,25)) +
-    scale_color_manual(name = '',values = c("Below" = "Cornflower Blue","Within"='black', "Above" = "orange")) +
-    scale_fill_manual(name = '',values = c("Below" = "Cornflower Blue", "Within"=NA,"Above" = "orange")) +
-    ylab('Ann Days Above,Within,Below Target') +
+    scale_color_manual(name = '',values = c("Below" = "Cornflower Blue","Between"='black', "Above" = "orange")) +
+    scale_fill_manual(name = '',values = c("Below" = "Cornflower Blue", "Between"=NA,"Above" = "orange")) +
+    ylab('Ann Days Above,Between,Below Target') +
     theme(axis.title.x=element_blank(),
           strip.text.y = element_text(angle = 0),
           legend.position ='top',
-          theme(legend.title = element_blank()),
+          legend.title = element_blank(),
           axis.text.x=element_text(angle=45,hjust=1)) #+
   AnnT7dADMexc
   ggsave(plot=AnnT7dADMexc,device = 'png',width=wd,height=3,
@@ -494,3 +553,91 @@ MultiYrQPlots <- function(SubBasinSites,SaveName){
 
 }
 
+
+MultiYrWSELVPlots <- function(SubBasinSites,SaveName){
+  sbnm <- unique(SubBasinSites$SubBasin)
+  sbsites <- paste0(SubBasinSites$Proj,collapse='|')
+  #DatSums <- list(NA)
+  WsSites <- paste0(names(cnfg)[!grepl('BCL|DEX|DOR|COT|FRN',names(cnfg))],collapse='|')
+  AllMonthLabs <- month.abb #unlist(sapply(month.abb,substr,0,1)) #
+  names(AllMonthLabs) <- as.character(1:12)
+
+  #if(length(WsSites[grepl(sbsites,names(WsSites))])>1){
+    ht <-5; wd <-7
+  #}else{
+  #  ht <-7; wd <-5
+  #}
+
+  WsSub <- OpsXld |>
+    mutate(Month = factor(format(Date,'%b'),levels = month.abb,ordered=T),
+           name = gsub('.15Minutes|.3Hours|.6Hours','',name),
+           Year = as.numeric(format(Date,'%Y'))) |>
+    dplyr::filter(grepl('Elev',name),Year>2020,Year<2026,
+                  grepl(WsSites,name),
+                  grepl(sbsites,name)) |>
+    mutate(name = gsub('.Elev|.0','',name)) |>
+    separate_wider_delim(name,delim='-',names = c('name','param')) |>
+    mutate(name = factor(name,ordered=T,levels=SubBasinSites$Proj),
+           param = as.factor(param))
+
+  summary(WsSub)
+  outs <- unlist(qgtConfig[['CenterElvs']])
+  excEl <- unlist(qgtConfig[['ExcElev']])
+  excEl.df <- data.frame(name = names(excEl), CritElevName = excEl,CritElev= NA) |>
+    filter(grepl(sbsites,name))
+  for(i in 1:nrow(excEl.df)){
+    if(grepl(sbsites,excEl.df$name[i])){
+      excEl.df$CritElev[i] <- outs[grepl(excEl.df$name[i],names(outs)) & grepl(excEl.df$CritElevName[i],names(outs))]
+    }
+  }
+  rm(excEl,outs)
+  excEl.df <- excEl.df |>
+    mutate(
+      CritElevName = gsub('WTC1','WTCT',CritElevName),
+      doy = 1,
+      Year = as.character(min(WsSub$Year)),
+      name = factor(name,ordered=T,levels=SubBasinSites$Proj))
+
+  monLabsDate <- seq.Date(min(WsSub$Date),by = 'month',length.out = 12)
+  monLabsDoy <- yday(monLabsDate)
+  names(monLabsDoy) <- format(monLabsDate,'%b')
+
+  for(nm in as.character(unique(excEl.df$name))){
+    WsSub_nm <-  WsSub |>
+      filter(grepl(nm,name))
+    if(nrow(WsSub_nm)>0){
+
+    # Annual WSELV Plot
+    DailyWs <-
+      ggplot(WsSub_nm |>
+               filter(!grepl('Rule',param)) |>
+               mutate(Year = as.factor(Year),
+                      doy = yday(Date)),
+             aes(y = Mean,x=doy,colour = Year,group = Year)) +
+      geom_line(alpha=0.8) +
+      scale_x_continuous(breaks = monLabsDoy,labels =   names(monLabsDoy)) +
+      geom_line(data = WsSub_nm |>
+                  filter(grepl('Rule',param)) |>
+                  mutate(Year = as.factor(Year),
+                         doy = yday(Date)),
+                aes(y = Mean,x=doy,colour = "Rule",group = Year),linewidth = 1) +
+      scale_y_continuous('Mean Daily WSELV [ft]',
+                         sec.axis = sec_axis(~.*0.3048, name = "Mean Daily WSELV [m]")
+      ) +
+      scale_colour_manual(values = c(clrs,Rule = 'black')) +
+      ylab('Daily Water Surface Elevation [ft] by Year') +
+      geom_hline(data = excEl.df |>filter(grepl(nm,name)),aes(yintercept = CritElev),color = 'brown') +
+      geom_text(data = excEl.df|>filter(grepl(nm,name)),aes(y = CritElev,x = doy,label = CritElevName),
+                color = 'brown',vjust = -0.5,hjust =0.1) +
+      theme(axis.title.x=element_blank(),
+            legend.position ='top',
+            legend.title = element_blank(),
+            strip.text.y = element_text(angle = 0),
+            axis.text.x=element_text(angle=45,hjust=1))
+    DailyWs
+    ggsave(plot=DailyWs,device = 'png',width=wd,height=ht,
+           filename = file.path(RdataDir,paste0(SaveName,'_',sbnm,'_',nm,'_WSELV5yrs.png')))
+
+    }
+  }
+}

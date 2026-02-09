@@ -57,7 +57,9 @@ Projects = 'All' #c('GPR','FOS') #'FAL' #  #c('CGR','FAL')
 
 # Setup path to JSON config file for all project data paths
 cnfg = jsonlite::fromJSON(file.path(LocalWd,"inst","WillCWMSTempTDGConfig.json"))
-
+FishCrit = jsonlite::fromJSON(file.path(WriteDir,"data","FishCriteria.json"))[['Criteria']]
+source(file.path(LocalWd,'R','temp_calcs.r'))
+FishCrit_ts <- ReformatFishCrit(FishCrit)
 # Declare if only specific CWMS paths are to be read, declare them here.
 # SpecificCWMSpaths <- 'FBWSELVRule'
 # SpecificCWMSpaths <- 'GDACS_Gates'
@@ -203,14 +205,18 @@ for(i in whichProj){
     # Calculate days of exceedance for Temperature variables
     # Check for temperature data and sites of interest
     source(file.path(LocalWd,'R','temp_calcs.r'))
-    xlmExcL <- list(NA)
-    xlmExcL[['Temp']] <- calcThreshMon(DataType = 'Temp-Water',TVals = c(16,18,20,'TTargPath'))
-    xlmExcL[['TDG']] <- calcThreshMon(DataType = 'TDG',TVals = c(110,120))
+    xlmExcL <- xlExcDtsL <- list(NA)
+    xlmExcL[['Temp']] <- calcThreshMon(DataType = 'Temp-Water',TVals = c(16,18,20,'TTargPath','FishCrit'))
+    xlExcDtsL[['Temp']] <- CalcDatesOfExc(DataType = 'Temp-Water',TVals = c(16,18,20))
+    xlmExcL[['TDG']] <- calcThreshMon(DataType = 'TDG',TVals = c(110,120)) 
+    #xlExcDtsL[['TDG']] <-  CalcDatesOfExc(DataType = 'TDG',TVals = c(110,120)) # Not implemented yet; only applies to Temp-Water
     xlmExcL[['Elev-Temp']] <- calcThreshMon(DataType = c('Elev-Forebay','Spill'),TVals = 'WtempControl')
     #xlmElevExc <- calcThreshMon(DataType = 'Opening',TVals = 'GateOpen') # Check if monthly summaries will work
     #xlmFlowExc <- calcThreshMon(DataType = 'Flow',TVals = 'QTargPath') # Not implemented yet; only applies to SLM
     xlmExcL <- Filter(Negate(is.logical), xlmExcL)
     xlmExc <- purrr::reduce(xlmExcL,full_join)
+    xlExcDtsL <- Filter(Negate(is.logical), xlExcDtsL)
+    xlExcDts <- purrr::reduce(xlExcDtsL,full_join)
   
     # Calculate Annual Exceedances
     xlaExc <- calcThreshAnn(xlmExc |> filter(!grepl('DysWTempCon',ExcType))) |>
@@ -254,13 +260,14 @@ for(i in whichProj){
     xlmExc <- NULL
     xlaExc <- NULL
     xlaEggEmrg <- NULL
+    xlExcDts <- NULL
   }
 
   #Save New Processed Data as Rdata File
-  save(Proj,OutletI,xw,xld,xldSum,xlm,xlmExc,xla,xlaExc,xlaEggEmrg,#cwms_paths,
+  save(Proj,OutletI,xw,xld,xldSum,xlm,xlmExc,xla,xlaExc,xlaEggEmrg,xlExcDts,#cwms_paths,
        file = file.path(RdataDir,gsub('_OpsRaw','_OpsProcessed',cnfg[[i]][['dataFileName']])))
   
-  rm(xw,xld,xldSum,xlm,xlmExc,xlmExcL,xla,xlaExc,xlaEggEmrg,Proj)
+  rm(xw,xld,xldSum,xlm,xlmExc,xlmExcL,xla,xlaExc,xlaEggEmrg,xlExcDts,Proj)
 }
 
 ```
@@ -349,11 +356,16 @@ for(i in whichProj){
   print(Proj)
   # Load project data
   load(file.path(RdataDir,gsub('Raw','Processed',cnfg[[i]][['dataFileName']])))
+  if(!is.null(xld)){
+    DataList[['xld']][[i]] <- xld 
+  }
   if(!is.null(xlmExc)){
     DataList[['Exc']][[i]] <- 
       xlmExc |>
-      full_join(xlaExc |> mutate(Month = 'Annual'),
-                xlaEggEmrg, by = c('name','Year','Month','TValsNum','ExcType','PrcExc','Exc'))
+      full_join(xlaExc |> mutate(Month = 'Annual'))
+  }
+  if(!is.null(xlExcDts)){
+    DataList[['ExcDts']][[i]] <- xlExcDts 
   }
   DataList[['Stats']][[i]] <- 
     xlm |> mutate(Month = as.character(Month)) |>
@@ -364,33 +376,37 @@ for(i in whichProj){
   if(exists('xlaEggEmrg')){
     DataList[['EggEmrg']][[i]] <- xlaEggEmrg
   }
-  rm(xw,xld,xldSum,xlm,xlmExc,xla,xlaExc,xlaEggEmrg,Proj)
+  rm(xw,xld,xldSum,xlm,xlmExc,xla,xlaExc,xlaEggEmrg,xlExcDts,Proj)
 }
+DataList[['xld']] <- Filter(Negate(is.null), DataList[['xld']])
 DataList[['Exc']] <- Filter(Negate(is.null), DataList[['Exc']])
+DataList[['ExcDts']] <- Filter(Negate(is.null), DataList[['ExcDts']])
 DataList[['Stats']] <- Filter(Negate(is.null), DataList[['Stats']])
 DataList[['EggEmrg']] <- Filter(Negate(is.null), DataList[['EggEmrg']])
+OpsXld <- purrr::reduce(DataList[['xld']],full_join) 
 OpsExc <- purrr::reduce(DataList[['Exc']],full_join) 
+OpsExcDts <- purrr::reduce(DataList[['ExcDts']],full_join) 
 OpsStats <- purrr::reduce(DataList[['Stats']],full_join) 
 OpsEggEmrg <- purrr::reduce(DataList[['EggEmrg']],full_join) 
 rm(DataList)
 
 # Example using a common colorblind-friendly palette
-cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73",  "#0072B2", "#D55E00", "#CC79A7") #"#F0E442",
-clrs<- cbPalette[c(1:4,6)]
-names(clrs) <- c(2021:2025)
+clrs<- c('2021'="#999999",'2022'= "#E69F00",'2023'= "#56B4E9",'2024'= "#009E73", '2025'="#D55E00") #, "#CC79A7", "#0072B2") #"#F0E442",
 
 sb <- levels(qgtConfig$SubBasins$SubBasin)
 PlotDataList <- as.list(sb)
 source(file.path(LocalWd,'R','AnnMetricPlotting.r'))
 SaveName = '2025Ops'
-	# • Nick to send list of numbers for reporting
-	# • Add hollow box and add size for time within band
-	# • Re-do ndays within temp bands with biological bands
-#  Multiple panes per year for biological bands
 for(i in 1:length(sb)){
-    # Left off here, problem with names for MFWill with i = 4 , line 366
-
+  # Prob with 2025Ops_SFMck_AnnTTargAbvBlwArrows numbers are too high!!!
+  # Fix TDG monthly/annual plot order for MFWill
+  # Add TDG to DET-BCL monthly/annual?
   PlotDataList[[i]] <-  MultiYrQPlots(
+    SubBasinSites = qgtConfig$SubBasins[grep(sb[i],qgtConfig$SubBasins$SubBasin),],
+    SaveName = SaveName)
+
+  # Add WSELV plot for HCR
+  MultiYrWSELVPlots(
     SubBasinSites = qgtConfig$SubBasins[grep(sb[i],qgtConfig$SubBasins$SubBasin),],
     SaveName = SaveName)
     
@@ -431,6 +447,15 @@ WTxlsxList1$OpsStats = OpsStats |>
            name = gsub('.0|.1Day|.COORD_Fisheries_|.USACE_Temporary_|.NMFS_USFWS_ODFW_| ','',
                        gsub('.Fisheries ','.',name)),
            Year = as.numeric(Year)) 
+
+WTxlsxList1$OpsExcDts = OpsExcDts |>
+    mutate(name = gsub('.0|.1Day|.COORD_Fisheries_|.USACE_Temporary_|.NMFS_USFWS_ODFW_| ','',
+                       gsub('.Fisheries ','.',name)),
+           ExcMeanVal = round(ExcMeanVal,1),
+           ExcMaxVal = round(ExcMaxVal,1),
+           Year = as.numeric(format(ExcIDstrt,'%Y'))) |>
+  summary()
+
 
 openxlsx::write.xlsx(WTxlsxList1,
                      file = file.path(RdataDir,paste(SaveName,'AllMetrics.xlsx',sep = '_')),
