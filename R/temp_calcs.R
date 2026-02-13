@@ -245,7 +245,7 @@ calcThreshMon <- function(DataType,TVals){
           xlmExcSub |>
             dplyr::filter(grepl(!!TempCompSite,name) & !grepl('Targ',name)) |>
             dplyr::select(-c(Min,Median,Mean,Max)) |>
-            rename(value = adm7d) |>
+            rename(value = adm7d) |> # NOTE: Days above 7dADM
             pivot_wider()
           ) |>
         mutate(Month = as.factor(Month),
@@ -408,11 +408,13 @@ CalcDatesOfExc <- function(DataType,TVals){
 
   TNms <- paste0('Exc',gsub('Path','',TVals))
   TValsNum <- as.numeric(TVals)[!is.na(as.numeric(TVals))]
-  xlmExcSub<- xlmExcSub |>
-    expand_grid(TValsNum) |>
-    arrange(name, Date) |>
-    mutate(Month = as.factor(Month),Year = as.factor(Year),
-           threshold = 'upper')
+  if(length(TValsNum)!=0){
+    xlmExcSub<- xlmExcSub |>
+      expand_grid(TValsNum) |>
+      arrange(name, Date) |>
+      mutate(Month = as.factor(Month),Year = as.factor(Year),
+             threshold = 'upper')
+  }
 
   if(any(grepl('FishCrit',TVals))){
     # Not implemented yet...
@@ -421,36 +423,35 @@ CalcDatesOfExc <- function(DataType,TVals){
                   rename(TValsNum = value))
 
 
-    # xlmExcSub |>
-    #   dplyr::select(-c(Min,Median,Mean,Max)) |>
-    #   rename(value = !!sym(DataType)) |>
-    #   pivot_wider() |>
-    #   mutate(Month = as.factor(Month),
-    #          Year = as.factor(Year),
-    #          threshold = as.factor(threshold),
-    #          name = as.factor(name)) |>
-    #   distinct() |>
-    #   pivot_wider(names_from = threshold,values_fn = mean) |>
-    #   arrange(Date) |>
-    #   group_by(Month,Year,name) |>
-    #   reframe(TargMin = lower,TargMax = upper,
-    #           Dys7dADMAbv = length(which(!!sym(TempCompSite) > upper)),
-    #           Dys7dADMBlw = length(which(!!sym(TempCompSite) < lower)),
-    #           Dys7dADMBtwn = length(na.omit(!!sym(TempCompSite))) - (Dys7dADMAbv + Dys7dADMBlw)
-    #   ) |>
-    #   rename(Target = name) |>
-    #   mutate(name = !!TempCompSite) |>
-    #   filter(!is.na(Target)) |>
-    #   distinct()
-    #
+    xlmExcSub |>
+      dplyr::select(-c(Min,Median,Mean,Max)) |>
+      rename(value = !!sym(DataType)) |>
+      pivot_wider() |>
+      mutate(Month = as.factor(Month),
+             Year = as.factor(Year),
+             threshold = as.factor(threshold),
+             name = as.factor(name)) |>
+      distinct() |>
+      pivot_wider(names_from = threshold,values_fn = mean) |>
+      arrange(Date) |>
+      group_by(Month,Year,name) |>
+      reframe(TargMin = lower,TargMax = upper,
+              Dys7dADMAbv = length(which(!!sym(TempCompSite) > upper)),
+              Dys7dADMBlw = length(which(!!sym(TempCompSite) < lower)),
+              Dys7dADMBtwn = length(na.omit(!!sym(TempCompSite))) - (Dys7dADMAbv + Dys7dADMBlw)
+      ) |>
+      rename(Target = name) |>
+      mutate(name = !!TempCompSite) |>
+      filter(!is.na(Target)) |>
+      distinct()
+
   }
 
 
   DatesOfExc <- function(x,DataCol){
     # Tabulate the date range and max value for each exceedence period
     # Add unique ID to each exceedence period
-    x
-    xlmExcSub |>
+    x |>
       group_by(name,TValsNum) |>
       reframe(
         Date = Date,

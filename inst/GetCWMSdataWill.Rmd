@@ -208,6 +208,7 @@ for(i in whichProj){
     xlmExcL <- xlExcDtsL <- list(NA)
     xlmExcL[['Temp']] <- calcThreshMon(DataType = 'Temp-Water',TVals = c(16,18,20,'TTargPath','FishCrit'))
     xlExcDtsL[['Temp']] <- CalcDatesOfExc(DataType = 'Temp-Water',TVals = c(16,18,20))
+    #xlExcDtsL[['Temp']] <- CalcDatesOfExc(DataType = 'Temp-Water',TVals = 'FishCrit')
     xlmExcL[['TDG']] <- calcThreshMon(DataType = 'TDG',TVals = c(110,120)) 
     #xlExcDtsL[['TDG']] <-  CalcDatesOfExc(DataType = 'TDG',TVals = c(110,120)) # Not implemented yet; only applies to Temp-Water
     xlmExcL[['Elev-Temp']] <- calcThreshMon(DataType = c('Elev-Forebay','Spill'),TVals = 'WtempControl')
@@ -405,7 +406,6 @@ for(i in 1:length(sb)){
     SubBasinSites = qgtConfig$SubBasins[grep(sb[i],qgtConfig$SubBasins$SubBasin),],
     SaveName = SaveName)
 
-  # Add WSELV plot for HCR
   MultiYrWSELVPlots(
     SubBasinSites = qgtConfig$SubBasins[grep(sb[i],qgtConfig$SubBasins$SubBasin),],
     SaveName = SaveName)
@@ -453,9 +453,14 @@ WTxlsxList1$OpsExcDts = OpsExcDts |>
                        gsub('.Fisheries ','.',name)),
            ExcMeanVal = round(ExcMeanVal,1),
            ExcMaxVal = round(ExcMaxVal,1),
-           Year = as.numeric(format(ExcIDstrt,'%Y'))) |>
-  summary()
+           Year = as.numeric(format(ExcIDstrt,'%Y'))) 
 
+# Make a table with biologic criteria and timing
+WTxlsxList1$BioCrit <- FishCrit |>
+  mutate(acute_F = round(c2f(acute),1),
+         chronic_F = round(c2f(chronic),1)) |>
+  select(-color) |>
+  relocate(threshold,.after = last_col())
 
 openxlsx::write.xlsx(WTxlsxList1,
                      file = file.path(RdataDir,paste(SaveName,'AllMetrics.xlsx',sep = '_')),

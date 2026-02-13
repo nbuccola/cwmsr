@@ -602,7 +602,7 @@ MultiYrWSELVPlots <- function(SubBasinSites,SaveName){
   monLabsDoy <- yday(monLabsDate)
   names(monLabsDoy) <- format(monLabsDate,'%b')
 
-  for(nm in as.character(unique(excEl.df$name))){
+  for(nm in SubBasinSites$Proj){
     WsSub_nm <-  WsSub |>
       filter(grepl(nm,name))
     if(nrow(WsSub_nm)>0){
