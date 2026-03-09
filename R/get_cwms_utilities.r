@@ -188,6 +188,9 @@ GetCWMSdata <- function(p,bdate,edate,mergeNewPaths=F){
 #'
 #' @description Interpolate data to hourly and remove columns with all NA values
 #' @return Save data (wide format), project outlet info, pathnames and re-write data to environment (xw)
+#' @param Rdata file
+#' @importFrom purrr
+#' @export
 #'
 InterpCols <- function(RdataDirProj){
   # Interpolate to hourly data

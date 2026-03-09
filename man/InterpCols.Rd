@@ -6,6 +6,9 @@
 \usage{
 InterpCols(RdataDirProj)
 }
+\arguments{
+\item{Rdata}{file}
+}
 \value{
 Save data (wide format), project outlet info, pathnames and re-write data to environment (xw)
 }
