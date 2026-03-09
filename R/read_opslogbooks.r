@@ -158,7 +158,10 @@ getDETBCLScrapedOpsLogBooks <- function(
 #' @importFrom ggplot2 dplyr purrr
 #' @export
 #'
-MergeGateOpsWflowWQ <- function(DETBCLGateOpsFileName,LOPlogbookFileName,GtsCWMS){
+MergeGateOpsWflowWQ <- function(DETBCLGateOpsFileName,
+                                LOPlogbookFileName,
+                                #GPRFOSlogbookFileName,
+                                GtsCWMS){
 
 
   # Load DET Log book data
@@ -182,17 +185,47 @@ MergeGateOpsWflowWQ <- function(DETBCLGateOpsFileName,LOPlogbookFileName,GtsCWMS
     ungroup() |>
     dplyr::select(-c('FB.elev.ft','TW.elev.ft',`Flow-Gen.cfs`,'Status','Date')) |>
     pivot_longer(cols = c('Flow','Opn'),names_to = 'param') |>
-    mutate(data = 'LogBook')
+    mutate(data = 'LogBook',
+           gate = gsub('SWY','SWG',gate))
 
   # Load the FOS logbook/flow data
   # Need to merge with GDACS data for FAL, HCR, CGR, GPR, FOS, BCL, DET
 
   # Find the DET and BCL data in the data that was saved from the get_cwms function above
   GtOpnWV <- GtsCWMS |>
+    filter(!grepl('RG1|RG2',gate)) |> # Currently excluding GDACS URO data, no LRO data in GDACS
     full_join(df.LB.CWMS) |>
     full_join(DETBCL_lb) |>
     mutate(gate = gsub('SWY','SWG',gsub('SB','SWG',gate)))
   return(GtOpnWV)
+}
+
+#' Plots of Gate openings and Gate flows per project
+#'
+#' @param SaveName Name of file to save
+#' @description Create Plots of Gate openings and Gate flows per project
+#' @return Writes ggplot images
+#' @importFrom ggplot2 dplyr purrr
+#' @export
+#'
+MakeGateOpeningPlots4Will <- function(GtDatProj){
+  # LEFT OFF HERE!!!
+  # Gate openings
+  GtOpPlt <- ggplot(GtOpnWV |>
+           filter(grepl('DET',name),!grepl('CWMS',data),
+                  grepl('SWG|RO',gate),grepl('2025',DateTime),grepl('Opn',param)) |> #,grepl('SB',gate),grepl('Opn',param)) |>
+           mutate(gate = as.factor(gate)),
+         aes(x = DateTime,y = value,group = gate)) +
+    geom_point(alpha = 0.6,size = 0.3) +
+    facet_grid(gate~.,scales = 'free') +
+    ylab('Gate Opening, ft') +
+    xlab('') +
+    scale_x_datetime(
+      date_breaks = "1 month", # Set major breaks every month
+      date_labels = "%b"    # Format labels as abbreviated month and full year (e.g., "Jan 2023")
+    )
+  GtOpPlt
+  ggsave()
 }
 
 
@@ -222,19 +255,30 @@ MakeProjFlowData4Will <- function(SaveName){
       arrange(DateTime)
 
     if(p == 'DET'){
-      GtDatProj <- GtDatProj |>
-        filter(grepl('Flow',param) & !grepl('Total',gate)) |>
-        select(-param) |>
-        filter(!is.na(value)) |>
-        pivot_wider(names_from = c(gate),id_cols = c('DateTime','data')) |>
-        arrange(DateTime) |>
-        group_by(DateTime) |>
-        reframe(Total = Out,Gen = Gen,Spill = Spill,
-                SWG = sum(across(contains('SWG')),na.rm=T),
-                URO = sum(across(contains('URO')),na.rm=T),
-                LRO = sum(across(contains('LRO')),na.rm=T)) |>
-        pivot_longer(cols = -DateTime,names_to = 'Gate_Type',values_to = 'Flow_cfs',values_drop_na = TRUE) |>
-        distinct()
+      GtDatProjOpn <- GtDatProj |>
+        filter(grepl('Opn',param),
+               grepl('LogBook',data),!grepl('Total',gate)) |>
+        select(-data,-param) |>
+        filter(!is.na(value)) #|>
+        #distinct() |>
+        #summary()
+        #pivot_wider(names_from = c(gate),id_cols = c('DateTime')) |>
+        #arrange(DateTime) |>
+        #group_by(DateTime) |>
+        # reframe(#Total = Out,
+        #         #Gen = Gen,Spill = Spill,
+        #         SWG = sum(across(contains('SWG')),na.rm=T),
+        #         URO = sum(across(contains('URO')),na.rm=T),
+        #         LRO = sum(across(contains('LRO')),na.rm=T)) |>
+        # pivot_longer(cols = -DateTime,names_to = 'Gate_Type',values_to = 'Flow_cfs',values_drop_na = TRUE) |>
+        # distinct()
+
+      GtDatProjQ <- GtDatProj |>
+        filter(grepl('Flow',param),
+               grepl('LogBook',data),!grepl('Total',gate)) |>
+        select(-data,-param) |>
+        filter(!is.na(value)) #|>
+
     }
 
     if(p == 'BCL'){
@@ -362,6 +406,7 @@ MakeProjFlowData4Will <- function(SaveName){
 
     summary(GtDatProj)
 
+
     # GtDatProj |>
     #   filter(grepl('6',month(DateTime))) |>
     #   print(n = 300)
@@ -398,11 +443,47 @@ MakeProjFlowData4Will <- function(SaveName){
       arrange(Usage) |>
       mutate(name = p)
 
+    # LEFT OFF HERE! Would like to have gate opening plots for all projects (so far only have DET)
+    figTsOpnByGtParams <-
+      ggplot( GtDatProjOpn,
+              aes(x=DateTime,y = value,colour=gate,group = gate)) +
+      geom_point(alpha = 0.6,size = 0.3) +
+      facet_grid(gate~.,scales = 'free') +
+      ylab(ylb) +
+      xlab('') +
+      scale_x_datetime(breaks = seq.POSIXt(from = min(GtDatProj$DateTime),to = max(GtDatProj$DateTime),by = 'month'),
+                       date_labels = '%b') +
+      scale_color_brewer(palette = "Set2") +
+      theme(strip.text.y.left = element_text(angle = 0),
+            axis.text.x=element_text(size = 10,angle=45,hjust=1),
+            axis.text=element_text(size=12),
+            axis.title=element_text(size=12,face="bold"),
+            strip.placement = "outside",
+            strip.text.x = element_text(size = 12),
+            strip.text.y = element_text(size = 10),
+            strip.background = element_rect(fill=NA),
+            legend.position = "none"
+      ) +
+      ggtitle(paste0('2025 ',p,' Gate Openings'))
+    figTsOpnByGtParams
+
+    ggplot2::ggsave(plot = figTsOpnByGtParams,
+                    filename = file.path(WriteDir,'GateOpenings',paste0(p,'_',SaveName,'.png')),
+                    device='png',width=9,height=6)
+
+    # To-DO:
+    # apply the tabulation of date ranges for when gates were used as done with biologic data
+    GtDatProjOpn |> filter(grepl('URO',gate),value>0,DateTime>as.POSIXct('2025-03-01')) |>
+      print(n = 1000)
+      summary()
+
 
     figTsByGtParams <-
       ggplot( GtDatProj,
              aes(x=DateTime,y = get(dataVar),colour=Gate_Type,group = Gate_Type)) +
-      geom_line(alpha = 0.6) +
+      #geom_line(alpha = 0.6) +
+      geom_point(alpha = 0.6,size = 0.3) +
+      facet_grid(gate~.,scales = 'free') +
       ylab(ylb) +
       xlab('') +
       scale_x_datetime(breaks = seq.POSIXt(from = min(GtDatProj$DateTime),to = max(GtDatProj$DateTime),by = 'month'),
@@ -423,7 +504,6 @@ MakeProjFlowData4Will <- function(SaveName){
       ggtitle(paste0('2025 ',p,' Gate-Type Summary of ',dataVar))
 
     figTsByGtParams
-
     ggplot2::ggsave(plot = figTsByGtParams,
                     filename = file.path(WriteDir,'GateOpenings',paste0(p,'_',SaveName,'.png')),
                     device='png',width=9,height=4)

@@ -311,10 +311,9 @@ GtsCWMS <- Gts |>
          name = gsub('ft-','ft',gsub('n-E','nE',gsub('.Code-Open','.Opening',name)))) |>
   separate_wider_delim(name,delim='-',names = c('name','gate')) |>
   mutate(data = 'CWMS',
-         param = if_else(grepl('Flow',gate),'Flow',if_else(grepl('Open',gate),'Opn','NA')),
-         gate = gsub('.Flow|.Open','',gate))
+         param = if_else(grepl('Flow',gate),'Flow',if_else(grepl('Opening',gate),'Opn','NA')),
+         gate = gsub('SB','SWG',gsub('.Flow|.Opening','',gate)))
  
-
 
 ```
 
@@ -339,7 +338,14 @@ GtOpnWV <- MergeGateOpsWflowWQ(
   LOPlogbookFileName = file.path(WriteDir,'GateOpenings','USACE_LOPHCRDEXCGR_ops_v01072026.RData'),
   GtsCWMS = GtsCWMS)
 
+
 # Left off here!!! Waiting for GPR-FOS data from Jack. Go through each project and send flow data for each outlet to Will.
+
+unique(GtOpnWV$gate)
+summary(GtOpnWV |> 
+         filter(grepl('DET',name),!grepl('Spill|Out|Total|Gen|RG',gate)) |>
+         mutate(gate = as.factor(gate),
+                data = as.factor(data)))
 
 source(file.path(LocalWd,'R','read_opslogbooks.r'))
 MakeProjFlowData4Will(SaveName = '2025GateOps')

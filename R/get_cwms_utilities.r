@@ -113,6 +113,7 @@ GetCWMSdata <- function(p,bdate,edate,mergeNewPaths=F){
     if(length(DwnstrmTDGPaths)>0){ # TDG data
       #outpths <- paste0(DwnstrmTDGPaths,cwms_paths$TDGdwnStrmPath) # For adding a specific path
       outpths <- c(outpths,paste0(DwnstrmTDGPaths,cwms_paths$TDGdwnStrmPath))
+      #outpths <- c(paste0(DwnstrmTDGPaths,cwms_paths$TDGDepthDwnStrmPath))
     }
     data_list[['outflow']] <- get_cwms(outpths,start_date=bdate,end_date=edate,CDApath=CDApath)
     allpaths[['outpths']] <- outpths
