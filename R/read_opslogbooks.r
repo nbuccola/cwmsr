@@ -245,15 +245,19 @@ MakeProjFlowData4Will <- function(SaveName){
   GtMonNmDysList <- list(NA)
   proj <- unique(GtOpnWV$name)[!grepl(c('DOR|COT|FRN|GPR|FOS'),unique(GtOpnWV$name))]
   for(p in proj){
+    p = 'CGR'
     print(p)
     GtDatProj <- GtOpnWV |>
-      filter(DateTime > as.POSIXct('2025-01-01'),
+      filter(DateTime > bdate,DateTime < edate,#as.POSIXct('2025-01-01'),
              #!grepl('E',gate),
-             grepl(p,name)) |>
+             grepl(!!p,name)) |>
              select(-name) |>
       mutate(gate = as.factor(gate),data= as.factor(data),param = as.factor(param)) |>
       arrange(DateTime)
-
+    GtDatProjOpn <- GtDatProj |>
+      filter(grepl('Opn',param)) |>
+      mutate(Month = factor(format(DateTime,'%b'),levels = month.abb,ordered=T),
+             Year = as.factor(format(DateTime,'%Y')))
     if(p == 'DET'){
       GtDatProjOpn <- GtDatProj |>
         filter(grepl('Opn',param),
@@ -379,8 +383,12 @@ MakeProjFlowData4Will <- function(SaveName){
         reframe(Total = Out_Flow,Gen = Gen_Flow,#Spill = Spill,
                 DT = DTGate_Flow,
                 RO = RO_Flow) |>
-        pivot_longer(cols = -DateTime,names_to = 'Gate_Type',values_to = 'Flow_cfs',values_drop_na = TRUE) |>
+        pivot_longer(cols = -DateTime,names_to = 'Gate_Type',
+                     values_to = 'Flow_cfs',values_drop_na = TRUE) |>
         distinct()
+      GtDatProjOpn <-
+        GtDatProjOpn |>
+        filter(!grepl('EGate',gate),gate!='RO',abs(value)<10)
     }
 
     if(p == 'GPR'){
@@ -443,16 +451,20 @@ MakeProjFlowData4Will <- function(SaveName){
       arrange(Usage) |>
       mutate(name = p)
 
+
+    summary(    GtDatProjOpn)
     # LEFT OFF HERE! Would like to have gate opening plots for all projects (so far only have DET)
-    figTsOpnByGtParams <-
+    # Get Colour pallete from other plots!!!
+    figBoxOpnByGtParams <-
       ggplot( GtDatProjOpn,
-              aes(x=DateTime,y = value,colour=gate,group = gate)) +
-      geom_point(alpha = 0.6,size = 0.3) +
-      facet_grid(gate~.,scales = 'free') +
-      ylab(ylb) +
+              aes(x=Month,y = value,colour=Year,group = Month)) +
+      geom_boxplot() +
+      #geom_point(alpha = 0.6,size = 0.3) +
+      facet_grid(~gate,scales = 'free') +
+      ylab('Gate Opening [ft]') +
       xlab('') +
-      scale_x_datetime(breaks = seq.POSIXt(from = min(GtDatProj$DateTime),to = max(GtDatProj$DateTime),by = 'month'),
-                       date_labels = '%b') +
+      # scale_x_datetime(breaks = seq.POSIXt(from = min(GtDatProj$DateTime),to = max(GtDatProj$DateTime),by = 'month'),
+      #                  date_labels = '%b') +
       scale_color_brewer(palette = "Set2") +
       theme(strip.text.y.left = element_text(angle = 0),
             axis.text.x=element_text(size = 10,angle=45,hjust=1),
@@ -464,8 +476,8 @@ MakeProjFlowData4Will <- function(SaveName){
             strip.background = element_rect(fill=NA),
             legend.position = "none"
       ) +
-      ggtitle(paste0('2025 ',p,' Gate Openings'))
-    figTsOpnByGtParams
+      ggtitle(paste0(p,' Gate Openings ',year(bdate),'-',year(edate)))
+    figBoxOpnByGtParams
 
     ggplot2::ggsave(plot = figTsOpnByGtParams,
                     filename = file.path(WriteDir,'GateOpenings',paste0(p,'_',SaveName,'.png')),

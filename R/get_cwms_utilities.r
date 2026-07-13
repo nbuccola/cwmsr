@@ -63,7 +63,8 @@ GetCWMSdata <- function(p,bdate,edate,mergeNewPaths=F){
       xwOld <- xw
       rm(xw)
     }
-    if((!is.Date(edate) |!is.POSIXt(edate)) & !mergeNewPaths){
+    if(!is.POSIXt(edate) & !mergeNewPaths){
+      print(paste('Changing bdate from',bdate,'to',as.POSIXct(max(xwOld$DateTime))))
       # Only interested  in getting the most recent data that is not in OldRdataDirProj file
       bdate <- as.POSIXct(max(xwOld$DateTime))
     }
@@ -111,9 +112,10 @@ GetCWMSdata <- function(p,bdate,edate,mergeNewPaths=F){
       outpths <- c(outpths,paste0(DwnstrmPaths,cwms_paths$TdwnStrmPath))
     }
     if(length(DwnstrmTDGPaths)>0){ # TDG data
-      #outpths <- paste0(DwnstrmTDGPaths,cwms_paths$TDGdwnStrmPath) # For adding a specific path
+      #outpths <- paste0(DwnstrmTDGPaths[c(3,4,5)],cwms_paths) # For adding a specific path
       outpths <- c(outpths,paste0(DwnstrmTDGPaths,cwms_paths$TDGdwnStrmPath))
-      #outpths <- c(paste0(DwnstrmTDGPaths,cwms_paths$TDGDepthDwnStrmPath))
+      outpths <- c(outpths,paste0(DwnstrmTDGPaths,cwms_paths$TDGDepthDwnStrmPath))
+      #outpths <- c(paste0(DwnstrmTDGPaths[2],cwms_paths$TDGDepthDwnStrmPath))
     }
     data_list[['outflow']] <- get_cwms(outpths,start_date=bdate,end_date=edate,CDApath=CDApath)
     allpaths[['outpths']] <- outpths
